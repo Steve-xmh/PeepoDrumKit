@@ -483,7 +483,7 @@ namespace PeepoDrumKit
 					else
 					{
 						// NOTE: Use a chouonpu here instead of a regular minus for a more readable and thicker glyph at smaller font sizes
-						Gui::TextDisabled("\xE3\x83\xBC"); // u8"Å[" // "-" // "(None)"
+						Gui::TextDisabled("\xE3\x83\xBC"); // u8"ÔøΩ[" // "-" // "(None)"
 					}
 
 					Gui::PopID();

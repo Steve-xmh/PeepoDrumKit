@@ -3,6 +3,8 @@
 #include <limits>
 #include <cfloat>
 #include <cmath>
+#include <algorithm>
+#include <memory>
 
 using i8 = int8_t;
 using u8 = uint8_t;

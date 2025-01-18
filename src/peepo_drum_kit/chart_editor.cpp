@@ -23,7 +23,9 @@ namespace PeepoDrumKit
 	static b8 CanZoomResetGuiScale() { return (GuiScaleFactorTarget != 1.0f); }
 	static void ZoomInGuiScale() { GuiScaleFactorToSetNextFrame = NextPresetGuiScaleFactor(GuiScaleFactorTarget, +1); }
 	static void ZoomOutGuiScale() { GuiScaleFactorToSetNextFrame = NextPresetGuiScaleFactor(GuiScaleFactorTarget, -1); }
-	static void ZoomResetGuiScale() { GuiScaleFactorToSetNextFrame = 1.0f; }
+	static void ZoomResetGuiScale() { 
+		GuiScaleFactorToSetNextFrame = 1.0f;
+	}
 
 	static b8 CanOpenChartDirectoryInFileExplorer(const ChartContext& context)
 	{
@@ -347,6 +349,7 @@ namespace PeepoDrumKit
 				{
 					{ GuiLanguage::EN, "en", "English", UI_Str("English"), },
 					{ GuiLanguage::JA, "ja", "Japanese", UI_Str("Japanese"), },
+					{ GuiLanguage::ZHCN, "zh-CN", "Simplified Chinese", UI_Str("Simplified Chinese"), },
 				};
 				static_assert(ArrayCount(languages) == EnumCount<GuiLanguage>);
 
