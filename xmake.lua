@@ -6,19 +6,34 @@ add_requires(
     {
         debug = is_mode("debug"),
         configs = {
-            glfw_opengl3 = true,
+            sdl3 = true,
+            sdl3_gpu = true,
         }
     })
 add_requires(
     "stb 2025.03.14",
     "thorvg v1.0-pre10",
     "libsoundio",
-    "glfw"
+    "libsdl3"
     )
 
+if is_os("windows") then -- Process Resource File (Icon)
+    rule("resource")
+        set_extensions(".rc", ".res")
+        on_build_file(function (target, sourcefile, opt)
+            import("core.project.depend")
+            
+            local targetfile = target:objectfile(sourcefile)
+            depend.on_changed(function ()
+                os.vrunv("windres", {sourcefile, "-o", targetfile})
+            end, {files = sourcefile})
+        end)
+end
+    
 target("PeepoDrumKit")
     set_kind("binary")
     set_languages("cxxlatest")
+    add_files("src/main.cpp")
     add_files("src/core/*.cpp")
     add_files("src/peepodrumkit/*.cpp")
     add_files("src/audio/*.cpp")
@@ -37,10 +52,12 @@ target("PeepoDrumKit")
     add_includedirs("src/core")
     add_includedirs("src/peepodrumkit")
     add_includedirs("libs")
-    add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "glfw")
+    add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3")
     if is_os("windows") then
         -- add_files("src/imgui/*.hlsl")
-        add_syslinks("Shlwapi", "Shell32", "Ole32", "dxgi", "d3d11")
+        add_files("src_res/Resource.rc")
+        add_defines("__OS_WINDOWS")
+        add_syslinks("Shlwapi", "Shell32", "Ole32", "dxgi", "d3d11", "ntdll")
         -- add_packages("directxshadercompiler")
         -- add_rules("utils.hlsl2spv", {bin2c = true})
     end

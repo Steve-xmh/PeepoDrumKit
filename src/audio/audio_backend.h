@@ -20,16 +20,17 @@ namespace Audio
 		StreamShareMode ShareMode;
 	};
 
-	using BackendRenderCallback = std::function<void(i16* outputBuffer, const u32 bufferFrameCount, const u32 bufferChannelCount)>;
+	using BackendRenderCallback = std::function<void(i16 *outputBuffer, const u32 bufferFrameCount, const u32 bufferChannelCount)>;
 
 	struct IAudioBackend
 	{
 		virtual ~IAudioBackend() = default;
-		virtual b8 OpenStartStream(const BackendStreamParam& param, BackendRenderCallback callback) = 0;
+		virtual b8 OpenStartStream(const BackendStreamParam &param, BackendRenderCallback callback) = 0;
 		virtual b8 StopCloseStream() = 0;
 		virtual b8 IsOpenRunning() const = 0;
 	};
 
+#ifdef __OS_WINDOWS
 	class WASAPIBackend : public IAudioBackend
 	{
 	public:
@@ -37,7 +38,24 @@ namespace Audio
 		~WASAPIBackend();
 
 	public:
-		b8 OpenStartStream(const BackendStreamParam& param, BackendRenderCallback callback) override;
+		b8 OpenStartStream(const BackendStreamParam &param, BackendRenderCallback callback) override;
+		b8 StopCloseStream() override;
+		b8 IsOpenRunning() const override;
+
+	private:
+		struct Impl;
+		std::unique_ptr<Impl> impl;
+	};
+#endif // __OS_WINDOWS
+
+	class LibSoundIOBackend : public IAudioBackend
+	{
+	public:
+		LibSoundIOBackend();
+		~LibSoundIOBackend();
+
+	public:
+		b8 OpenStartStream(const BackendStreamParam &param, BackendRenderCallback callback) override;
 		b8 StopCloseStream() override;
 		b8 IsOpenRunning() const override;
 

@@ -2,10 +2,10 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
-#include <imgui_impl_opengl3_loader.h>
-#include <GLFW/glfw3.h>
+#include <imgui_impl_sdl3.h>
+#include <imgui_impl_sdlgpu3.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_gpu.h>
 #include "extension/imgui_input_binding.h"
 
 #include "core_io.h"
@@ -35,10 +35,45 @@ EmbeddedIconsList GetEmbeddedIconsList()
 	return EmbeddedIconsList{0};
 }
 
-static void glfw_error_callback(int error, const char *description)
+#ifdef __OS_WINDOWS
+
+#include <windows.h>
+#include <bcrypt.h>
+
+extern "C" NTSTATUS NTAPI NtSetTimerResolution(
+	IN ULONG DesiredResolution,
+	IN BOOLEAN SetResolution,
+	OUT PULONG CurrentResolution);
+
+extern "C" NTSTATUS NTAPI NtQueryTimerResolution(
+	OUT PULONG CurrentResolution,
+	OUT PULONG MinimumResolution,
+	OUT PULONG MaximumResolution);
+
+static void EnableWindowsHiResTimer(void)
 {
-	fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+	ULONG curRes = 0;
+	ULONG minRes = 0;
+	ULONG maxRes = 0;
+
+	NTSTATUS queryStatus = NtQueryTimerResolution(&curRes, &minRes, &maxRes);
+	if (queryStatus == 0)
+	{
+		bool setHighResolutionTimer = curRes > maxRes;
+
+		if (setHighResolutionTimer)
+		{
+			ULONG targetResolution = curRes;
+			NTSTATUS status = NtSetTimerResolution(maxRes, TRUE, &targetResolution);
+			if (status == 0)
+			{
+				std::cout << "Using HiRes Timer: " << curRes / 10000.0 << "ms -> " << targetResolution / 10000.0 << "ms" << std::endl;
+			}
+		}
+	}
 }
+
+#endif // __OS_WINDOWS
 
 namespace ApplicationHost
 {
@@ -49,55 +84,81 @@ namespace ApplicationHost
 	static constexpr cstr FontFilePath = "assets/NotoSansCJKjp-Regular.otf";
 
 	static constexpr ImVec4 clearColor = ImVec4(0.12f, 0.12f, 0.12f, 1.0f);
+	static ImFont *currentFont = nullptr;
+
+	static void LoadFont(void)
+	{
+		auto &io = ImGui::GetIO();
+		if (currentFont != nullptr)
+		{
+			io.Fonts->RemoveFont(currentFont);
+			currentFont = nullptr;
+		}
+
+		std::string fontFilePath = "assets/" + FontMainFileNameCurrent;
+
+		currentFont = io.Fonts->AddFontFromFileTTF(fontFilePath.c_str(), 16.0f);
+		if (currentFont == nullptr)
+		{
+			std::cout << "Failed to load font file at: " << fontFilePath << std::endl;
+		}
+		else
+		{
+			std::cout << "Loaded font file at: " << fontFilePath << std::endl;
+		}
+	}
+
+	static void BeforeRender(void)
+	{
+		if (FontMainFileNameTarget != FontMainFileNameCurrent)
+		{
+			FontMainFileNameCurrent = FontMainFileNameTarget;
+			LoadFont();
+		}
+	}
 
 	i32 EnterProgramLoop(const StartupParam &startupParam, UserCallbacks userCallbacks)
 	{
-		glfwSetErrorCallback(glfw_error_callback);
-		if (!glfwInit())
-			return 1;
+#ifdef __OS_WINDOWS
+		EnableWindowsHiResTimer();
+#endif // __OS_WINDOWS
 
-		// Decide GL+GLSL versions
-#if defined(IMGUI_IMPL_OPENGL_ES2)
-		// GL ES 2.0 + GLSL 100 (WebGL 1.0)
-		const char *glsl_version = "#version 100";
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-#elif defined(IMGUI_IMPL_OPENGL_ES3)
-		// GL ES 3.0 + GLSL 300 es (WebGL 2.0)
-		const char *glsl_version = "#version 300 es";
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-#elif defined(__APPLE__)
-		// GL 3.2 + GLSL 150
-		const char *glsl_version = "#version 150";
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 3.2+ only
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);		   // Required on Mac
-#else
-		// GL 3.0 + GLSL 130
-		const char *glsl_version = "#version 130";
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-		// glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-		// glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-#endif
+		if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
+		{
+			std::cout << "Error: SDL_Init(): " << SDL_GetError() << std::endl;
+			return -1;
+		}
 
-		float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
+		float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 
 		auto windowTitle = std::string(startupParam.WindowTitle.empty() ? "Peepo Drum Kit" : startupParam.WindowTitle);
 		auto windowPos = startupParam.WindowPosition.has_value() ? *startupParam.WindowPosition : ivec2(100, 100);
 		auto windowSize = startupParam.WindowSize.has_value() ? *startupParam.WindowSize : ivec2(1280, 720);
 
-		auto window = glfwCreateWindow(windowSize.x, windowSize.y, windowTitle.c_str(), nullptr, nullptr);
+		SDL_WindowFlags window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+		auto window = SDL_CreateWindow(windowTitle.c_str(), (int)(1280 * main_scale), (int)(800 * main_scale), window_flags);
 		if (window == nullptr)
+		{
+			std::cout << "Error: SDL_CreateWindow(): " << SDL_GetError() << std::endl;
 			return -1;
+		}
 
-		glfwSetWindowPos(window, windowPos.x, windowPos.y);
-		glfwMakeContextCurrent(window);
-		glfwSwapInterval(1); // TODO: If possible, make this configurable (vsync on/off)
+		SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+		SDL_ShowWindow(window);
+
+		auto gpu_device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_METALLIB, true, nullptr);
+		if (gpu_device == nullptr)
+		{
+			std::cout << "Error: SDL_CreateGPUDevice(): " << SDL_GetError() << std::endl;
+			return 1;
+		}
+
+		if (!SDL_ClaimWindowForGPUDevice(gpu_device, window))
+		{
+			std::cout << "Error: SDL_ClaimWindowForGPUDevice(): " << SDL_GetError() << std::endl;
+			return 1;
+		}
+		SDL_SetGPUSwapchainParameters(gpu_device, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC);
 
 		IMGUI_CHECKVERSION();
 		auto ctx = ImGui::CreateContext();
@@ -109,6 +170,7 @@ namespace ApplicationHost
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	  // Enable Docking
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;	  // Enable Multi-Viewport / Platform Windows
 		io.IniFilename = "settings_imgui.ini";
+		// auto font = io.Fonts->AddFontFromFileTTF(FontFilePath, 16.0f);
 
 		ImGui::StyleColorsDark();
 
@@ -120,71 +182,98 @@ namespace ApplicationHost
 		io.ConfigDpiScaleViewports = true; // [Experimental] Scale Dear ImGui and Platform Windows when Monitor DPI changes.
 #endif
 
-		ImGui_ImplGlfw_InitForOpenGL(window, true);
-		// TODO: Web version?
-		ImGui_ImplOpenGL3_Init(glsl_version);
+		// Setup Platform/Renderer backends
+		ImGui_ImplSDL3_InitForSDLGPU(window);
+		ImGui_ImplSDLGPU3_InitInfo init_info = {};
+		init_info.Device = gpu_device;
+		init_info.ColorTargetFormat = SDL_GetGPUSwapchainTextureFormat(gpu_device, window);
+		init_info.MSAASamples = SDL_GPU_SAMPLECOUNT_1; // Only used in multi-viewports mode.
+		ImGui_ImplSDLGPU3_Init(&init_info);
 
 		userCallbacks.OnStartup();
 
-		while (true)
+		bool done = false;
+
+		while (!done)
 		{
-			if (glfwWindowShouldClose(window))
+			SDL_Event event;
+			while (SDL_PollEvent(&event))
 			{
-				auto res = userCallbacks.OnWindowCloseRequest();
-				if (res == CloseResponse::Exit)
-				{
-					break;
-				}
+				ImGui_ImplSDL3_ProcessEvent(&event);
+				if (event.type == SDL_EVENT_QUIT)
+					done = true;
+				if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(window) && userCallbacks.OnWindowCloseRequest() == CloseResponse::Exit)
+					done = true;
 			}
 
-			glfwPollEvents();
-			if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0)
+			if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED)
 			{
-				ImGui_ImplGlfw_Sleep(10);
+				SDL_Delay(10);
 				continue;
 			}
 
-			ImGui_ImplOpenGL3_NewFrame();
-			ImGui_ImplGlfw_NewFrame();
+			ImGui_ImplSDLGPU3_NewFrame();
+			ImGui_ImplSDL3_NewFrame();
 			ImGui::NewFrame();
 			ImGui_UpdateInternalInputExtraDataAtStartOfFrame();
 
 			// Render here
 			{
+				BeforeRender();
+				if (currentFont != nullptr)
+					ImGui::PushFont(currentFont);
 				userCallbacks.OnUpdate();
+				if (currentFont != nullptr)
+					ImGui::PopFont();
 			}
 
 			// Rendering
 			ImGui::Render();
-			int display_w, display_h;
-			glfwGetFramebufferSize(window, &display_w, &display_h);
-			glViewport(0, 0, display_w, display_h);
-			glClearColor(clearColor.x * clearColor.w, clearColor.y * clearColor.w, clearColor.z * clearColor.w, clearColor.w);
-			glClear(GL_COLOR_BUFFER_BIT);
-			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+			auto draw_data = ImGui::GetDrawData();
+			const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
 
-			// Update and Render additional Platform Windows
-			// (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
-			//  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
-			if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+			SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer(gpu_device); // Acquire a GPU command buffer
+
+			SDL_GPUTexture *swapchain_texture;
+			SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer, window, &swapchain_texture, nullptr, nullptr); // Acquire a swapchain texture
+
+			if (swapchain_texture != nullptr && !is_minimized)
 			{
-				GLFWwindow *backup_current_context = glfwGetCurrentContext();
-				ImGui::UpdatePlatformWindows();
-				ImGui::RenderPlatformWindowsDefault();
-				glfwMakeContextCurrent(backup_current_context);
+				// This is mandatory: call ImGui_ImplSDLGPU3_PrepareDrawData() to upload the vertex/index buffer!
+				ImGui_ImplSDLGPU3_PrepareDrawData(draw_data, command_buffer);
+
+				// Setup and start a render pass
+				SDL_GPUColorTargetInfo target_info = {};
+				target_info.texture = swapchain_texture;
+				target_info.clear_color = SDL_FColor{clearColor.x, clearColor.y, clearColor.z, clearColor.w};
+				target_info.load_op = SDL_GPU_LOADOP_CLEAR;
+				target_info.store_op = SDL_GPU_STOREOP_STORE;
+				target_info.mip_level = 0;
+				target_info.layer_or_depth_plane = 0;
+				target_info.cycle = false;
+				SDL_GPURenderPass *render_pass = SDL_BeginGPURenderPass(command_buffer, &target_info, 1, nullptr);
+
+				// Render ImGui
+				ImGui_ImplSDLGPU3_RenderDrawData(draw_data, command_buffer, render_pass);
+
+				SDL_EndGPURenderPass(render_pass);
 			}
 
-			glfwSwapBuffers(window);
+			// Submit the command buffer
+			SDL_SubmitGPUCommandBuffer(command_buffer);
 		}
 
 		userCallbacks.OnShutdown();
 
-		ImGui_ImplOpenGL3_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
+		SDL_WaitForGPUIdle(gpu_device);
+		ImGui_ImplSDL3_Shutdown();
+		ImGui_ImplSDLGPU3_Shutdown();
 		ImGui::DestroyContext();
 
-		glfwDestroyWindow(window);
-		glfwTerminate();
+		SDL_ReleaseWindowFromGPUDevice(gpu_device, window);
+		SDL_DestroyGPUDevice(gpu_device);
+		SDL_DestroyWindow(window);
+		SDL_Quit();
 
 		return 0;
 	}

@@ -168,7 +168,7 @@ using make_enum_sequence = typename make_enum_sequence_helper<EnumType, std::mak
 template <typename T, typename... Ts, size_t... Is>
 static constexpr std::array<T, sizeof...(Is)> InitializedArrayHelper(std::index_sequence<Is...>, Ts&&... initArgs)
 {
-	return { (Is, void{}, T(initArgs...))... };
+	return { (static_cast<void>(Is), T(std::forward<Ts>(initArgs)...))... };
 }
 
 template <typename T, size_t Size, typename... Ts>

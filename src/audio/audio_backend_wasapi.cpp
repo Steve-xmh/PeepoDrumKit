@@ -1,3 +1,5 @@
+#ifdef __OS_WINDOWS
+
 #include "audio_backend.h"
 #include "audio_common.h"
 
@@ -48,7 +50,7 @@ namespace Audio
 	struct WASAPIBackend::Impl
 	{
 	public:
-		b8 OpenStartStream(const BackendStreamParam& param, BackendRenderCallback callback)
+		b8 OpenStartStream(const BackendStreamParam &param, BackendRenderCallback callback)
 		{
 			if (isOpenRunning)
 				return false;
@@ -62,21 +64,21 @@ namespace Audio
 			error = ::CoCreateInstance(__uuidof(::MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(::IMMDeviceEnumerator), &deviceEnumerator);
 			if (FAILED(error))
 			{
-				printf(__FUNCTION__"(): Unable to create MMDeviceEnumerator. Error: 0x%X\n", error);
+				printf(__FUNCTION__ "(): Unable to create MMDeviceEnumerator. Error: 0x%X\n", error);
 				return false;
 			}
 
 			error = deviceEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &device);
 			if (FAILED(error))
 			{
-				printf(__FUNCTION__"(): Unable to retrieve default audio endpoint. Error: 0x%X\n", error);
+				printf(__FUNCTION__ "(): Unable to retrieve default audio endpoint. Error: 0x%X\n", error);
 				return false;
 			}
 
 			error = device->Activate(__uuidof(::IAudioClient), CLSCTX_ALL, nullptr, &audioClient);
 			if (FAILED(error))
 			{
-				printf(__FUNCTION__"(): Unable to activate audio client for device. Error: 0x%X\n", error);
+				printf(__FUNCTION__ "(): Unable to activate audio client for device. Error: 0x%X\n", error);
 				return false;
 			}
 
@@ -104,7 +106,7 @@ namespace Audio
 			deviceTimePeriod = (streamParam.ShareMode == StreamShareMode::Shared) ? 0 : bufferTimeDuration;
 			if (FAILED(error))
 			{
-				printf(__FUNCTION__"(): Unable to retrieve device period. Error: 0x%X\n", error);
+				printf(__FUNCTION__ "(): Unable to retrieve device period. Error: 0x%X\n", error);
 				return false;
 			}
 
@@ -114,7 +116,7 @@ namespace Audio
 				error = audioClient->GetBufferSize(&bufferFrameCount);
 				if (FAILED(error))
 				{
-					printf(__FUNCTION__"(): Unable to get audio client buffer size. Error: 0x%X\n", error);
+					printf(__FUNCTION__ "(): Unable to get audio client buffer size. Error: 0x%X\n", error);
 					return false;
 				}
 
@@ -124,56 +126,54 @@ namespace Audio
 				error = device->Activate(__uuidof(::IAudioClient), CLSCTX_ALL, nullptr, &audioClient);
 				if (FAILED(error))
 				{
-					printf(__FUNCTION__"(): Unable to activate audio client for device. Error: 0x%X\n", error);
+					printf(__FUNCTION__ "(): Unable to activate audio client for device. Error: 0x%X\n", error);
 					return false;
 				}
 
 				error = audioClient->Initialize(shareMode, streamFlags, bufferTimeDuration, deviceTimePeriod, &waveformat, nullptr);
 				if (FAILED(error))
 				{
-					printf(__FUNCTION__"(): Unable to initialize audio client. Error: 0x%X\n", error);
+					printf(__FUNCTION__ "(): Unable to initialize audio client. Error: 0x%X\n", error);
 					return false;
 				}
 			}
 			else if (FAILED(error))
 			{
-				printf(__FUNCTION__"(): Unable to initialize audio client. Error: 0x%X\n", error);
+				printf(__FUNCTION__ "(): Unable to initialize audio client. Error: 0x%X\n", error);
 				return false;
 			}
 
 			audioClientEvent = ::CreateEventW(nullptr, false, false, nullptr);
 			if (audioClientEvent == NULL)
 			{
-				printf(__FUNCTION__"(): Unable to create audio client event. Error: 0x%X\n", ::GetLastError());
+				printf(__FUNCTION__ "(): Unable to create audio client event. Error: 0x%X\n", ::GetLastError());
 				return false;
 			}
 
 			error = audioClient->SetEventHandle(audioClientEvent);
 			if (FAILED(error))
 			{
-				printf(__FUNCTION__"(): Unable to set audio client event handle. Error: 0x%X\n", error);
+				printf(__FUNCTION__ "(): Unable to set audio client event handle. Error: 0x%X\n", error);
 				return false;
 			}
 
 			error = audioClient->GetService(__uuidof(::IAudioRenderClient), &renderClient);
 			if (FAILED(error))
 			{
-				printf(__FUNCTION__"(): Unable to get audio render client. Error: 0x%X\n", error);
+				printf(__FUNCTION__ "(): Unable to get audio render client. Error: 0x%X\n", error);
 				return false;
 			}
 
 			error = audioClient->GetService(__uuidof(::ISimpleAudioVolume), &simpleAudioVolume);
 			if (FAILED(error))
-				printf(__FUNCTION__"(): Unable to get simple audio volume interface. Error: 0x%X\n", error);
+				printf(__FUNCTION__ "(): Unable to get simple audio volume interface. Error: 0x%X\n", error);
 
 			renderThread = ::CreateThread(nullptr, 0, [](LPVOID lpParameter) -> DWORD
-			{
-				return static_cast<DWORD>(reinterpret_cast<WASAPIBackend::Impl*>(lpParameter)->RenderThreadEntryPoint());
-			}, static_cast<void*>(this), 0, nullptr);
+										  { return static_cast<DWORD>(reinterpret_cast<WASAPIBackend::Impl *>(lpParameter)->RenderThreadEntryPoint()); }, static_cast<void *>(this), 0, nullptr);
 
 			if (renderThread == NULL)
 			{
-				printf(__FUNCTION__"(): Unable to create render thread. Error: 0x%X\n", ::GetLastError());
+				printf(__FUNCTION__ "(): Unable to create render thread. Error: 0x%X\n", ::GetLastError());
 				return false;
 			}
 
@@ -222,7 +222,7 @@ namespace Audio
 		{
 			if (audioClient == nullptr || renderClient == nullptr)
 			{
-				printf(__FUNCTION__"(): Audio client uninitialized\n");
+				printf(__FUNCTION__ "(): Audio client uninitialized\n");
 				return -1;
 			}
 
@@ -233,16 +233,16 @@ namespace Audio
 			error = audioClient->GetBufferSize(&bufferFrameCount);
 			if (FAILED(error))
 			{
-				printf(__FUNCTION__"(): Unable to get audio client buffer size. Error: 0x%X\n", error);
+				printf(__FUNCTION__ "(): Unable to get audio client buffer size. Error: 0x%X\n", error);
 				return -1;
 			}
 
 			// NOTE: Load the first buffer with data before starting the stream to to reduce latency
-			BYTE* tempOutputBuffer = nullptr;
+			BYTE *tempOutputBuffer = nullptr;
 			error = renderClient->GetBuffer(bufferFrameCount, &tempOutputBuffer);
 
 			if (!FAILED(error))
-				RenderThreadProcessOutputBuffer(reinterpret_cast<i16*>(tempOutputBuffer), bufferFrameCount, streamParam.ChannelCount);
+				RenderThreadProcessOutputBuffer(reinterpret_cast<i16 *>(tempOutputBuffer), bufferFrameCount, streamParam.ChannelCount);
 
 			DWORD releaseBufferFlags = 0;
 			error = renderClient->ReleaseBuffer(bufferFrameCount, releaseBufferFlags);
@@ -251,12 +251,12 @@ namespace Audio
 			proAudioTaskIndex = 0;
 			proAudioTask = ::AvSetMmThreadCharacteristicsW(L"Pro Audio", &proAudioTaskIndex);
 			if (proAudioTask == NULL)
-				printf(__FUNCTION__"(): Unable to assign Pro Audio thread characteristics to render thread. Error: 0x%X\n", error);
+				printf(__FUNCTION__ "(): Unable to assign Pro Audio thread characteristics to render thread. Error: 0x%X\n", error);
 
 			error = audioClient->Start();
 			if (FAILED(error))
 			{
-				printf(__FUNCTION__"(): Unable to start audio client. Error: 0x%X\n", error);
+				printf(__FUNCTION__ "(): Unable to start audio client. Error: 0x%X\n", error);
 				return -1;
 			}
 
@@ -268,7 +268,7 @@ namespace Audio
 				const DWORD waitObjectResult = ::WaitForSingleObject(audioClientEvent, 2000);
 				if (waitObjectResult != WAIT_OBJECT_0)
 				{
-					printf(__FUNCTION__"(): Audio client event timeout. Error: 0x%X\n", ERROR_TIMEOUT);
+					printf(__FUNCTION__ "(): Audio client event timeout. Error: 0x%X\n", ERROR_TIMEOUT);
 					break;
 				}
 
@@ -288,14 +288,14 @@ namespace Audio
 				error = renderClient->GetBuffer(remainingFrameCount, &tempOutputBuffer);
 
 				if (!FAILED(error))
-					RenderThreadProcessOutputBuffer(reinterpret_cast<i16*>(tempOutputBuffer), remainingFrameCount, streamParam.ChannelCount);
+					RenderThreadProcessOutputBuffer(reinterpret_cast<i16 *>(tempOutputBuffer), remainingFrameCount, streamParam.ChannelCount);
 
 				error = renderClient->ReleaseBuffer(remainingFrameCount, releaseBufferFlags);
 			}
 
 			error = audioClient->Stop();
 			if (FAILED(error))
-				printf(__FUNCTION__"(): Unable to stop audio client. Error: 0x%X\n", error);
+				printf(__FUNCTION__ "(): Unable to stop audio client. Error: 0x%X\n", error);
 
 			if (proAudioTask != NULL)
 				::AvRevertMmThreadCharacteristics(proAudioTask);
@@ -303,7 +303,7 @@ namespace Audio
 			return 0;
 		}
 
-		void RenderThreadProcessOutputBuffer(i16* outputBuffer, const u32 frameCount, const u32 channelCount)
+		void RenderThreadProcessOutputBuffer(i16 *outputBuffer, const u32 frameCount, const u32 channelCount)
 		{
 			if (outputBuffer == nullptr)
 				return;
@@ -351,7 +351,9 @@ namespace Audio
 
 	WASAPIBackend::WASAPIBackend() : impl(std::make_unique<Impl>()) {}
 	WASAPIBackend::~WASAPIBackend() = default;
-	b8 WASAPIBackend::OpenStartStream(const BackendStreamParam& param, BackendRenderCallback callback) { return impl->OpenStartStream(param, std::move(callback)); }
+	b8 WASAPIBackend::OpenStartStream(const BackendStreamParam &param, BackendRenderCallback callback) { return impl->OpenStartStream(param, std::move(callback)); }
 	b8 WASAPIBackend::StopCloseStream() { return impl->StopCloseStream(); }
 	b8 WASAPIBackend::IsOpenRunning() const { return impl->IsOpenRunning(); }
 }
+
+#endif // __OS_WINDOWS

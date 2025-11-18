@@ -17,7 +17,7 @@ struct WAVEFORM_CONSTANT_BUFFER
 	float Amplitudes[CustomDraw::WaveformPixelsPerChunk];
 };
 
-// TODO: Reimplement these on GLFW/OpenGL 3 backend
+// TODO: Reimplement these on SDL3/SDL_GPU backend
 namespace CustomDraw
 {
 	void GPUTexture::Load(const GPUTextureDesc &desc)

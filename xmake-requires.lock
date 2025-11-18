@@ -109,21 +109,29 @@
             },
             version = "4.1.2"
         },
-        ["glfw#f56260b5"] = {
+        ["egl-headers#f56260b5"] = {
             repo = {
                 branch = "master",
-                commit = "f9b0cbf44b204b089b3cb3344183ea8ee1f06ba0",
+                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
                 url = "https://gitee.com/tboox/xmake-repo.git"
             },
-            version = "3.4"
+            version = "2023.12.16"
         },
-        ["imgui 1.92.0-docking#c3d00a58"] = {
+        ["imgui 1.92.0-docking#af0acc26"] = {
             repo = {
                 branch = "master",
                 commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
                 url = "https://gitee.com/tboox/xmake-repo.git"
             },
             version = "v1.92.0-docking"
+        },
+        ["libsdl3#f56260b5"] = {
+            repo = {
+                branch = "master",
+                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
+                url = "https://gitee.com/tboox/xmake-repo.git"
+            },
+            version = "3.2.26"
         },
         ["libsoundio#f56260b5"] = {
             repo = {
@@ -149,13 +157,13 @@
             },
             version = "1.12.1"
         },
-        ["opengl#f56260b5"] = {
+        ["opengl-headers#f56260b5"] = {
             repo = {
                 branch = "master",
                 commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
                 url = "https://gitee.com/tboox/xmake-repo.git"
             },
-            version = "latest"
+            version = "2024.01.04"
         },
         ["pkgconf#f56260b5"] = {
             repo = {
