@@ -4,15 +4,16 @@ set_policy("package.requires_lock", true)
 add_requires(
     "imgui 1.92.0-docking",
     {
+        debug = is_mode("debug"),
         configs = {
-            glfw = true,
-            opengl3 = true,
+            glfw_opengl3 = true,
         }
     })
 add_requires(
     "stb 2025.03.14",
     "thorvg v1.0-pre10",
-    "libsoundio"
+    "libsoundio",
+    "glfw"
     )
 
 target("PeepoDrumKit")
@@ -36,7 +37,7 @@ target("PeepoDrumKit")
     add_includedirs("src/core")
     add_includedirs("src/peepodrumkit")
     add_includedirs("libs")
-    add_packages("imgui", "dr_libs", "stb", "thorvg", "bass24")
+    add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "glfw")
     if is_os("windows") then
         -- add_files("src/imgui/*.hlsl")
         add_syslinks("Shlwapi", "Shell32", "Ole32", "dxgi", "d3d11")
@@ -45,6 +46,6 @@ target("PeepoDrumKit")
     end
     
     after_build(function () 
-        os.cp("$(projectdir)/locales", "$(buildir)/$(plat)/$(arch)/$(mode)/locales")
-        os.cp("$(projectdir)/assets", "$(buildir)/$(plat)/$(arch)/$(mode)/assets")
+        os.cp("$(projectdir)/locales", "$(builddir)/$(plat)/$(arch)/$(mode)/")
+        os.cp("$(projectdir)/assets", "$(builddir)/$(plat)/$(arch)/$(mode)/")
     end)

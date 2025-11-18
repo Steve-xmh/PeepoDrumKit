@@ -112,12 +112,12 @@
         ["glfw#f56260b5"] = {
             repo = {
                 branch = "master",
-                commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
+                commit = "f9b0cbf44b204b089b3cb3344183ea8ee1f06ba0",
                 url = "https://gitee.com/tboox/xmake-repo.git"
             },
             version = "3.4"
         },
-        ["imgui 1.92.0-docking#7b57b7fb"] = {
+        ["imgui 1.92.0-docking#c3d00a58"] = {
             repo = {
                 branch = "master",
                 commit = "de0ced6a54566244ad2e505722dbf049ced7f256",
