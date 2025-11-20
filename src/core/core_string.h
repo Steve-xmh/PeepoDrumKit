@@ -35,6 +35,7 @@ inline void CopyStringViewIntoFixedBuffer(char* buffer, size_t bufferSize, std::
 }
 
 // MSVC secure CRT compatibility shims for cross-platform builds
+#if !defined(_MSC_VER) && defined(__MINGW32__)
 template <size_t N>
 inline int strcat_s(char (&dest)[N], const char* src)
 {
@@ -57,6 +58,7 @@ inline int strcpy_s(char (&dest)[N], const char* src)
 	dest[copylen] = '\0';
 	return 0;
 }
+#endif // !defined(_MSC_VER) && defined(__MINGW32__)
 
 
 // NOTE: Following the "UTF-8 Everywhere" guidelines
