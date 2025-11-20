@@ -57,6 +57,7 @@ namespace ApplicationHost
 		// NOTE: READ ONLY
 		// --------------------------------
 		void* NativeWindowHandle;
+		void* SDL_GPUDeviceHandle;
 		ivec2 WindowPosition;
 		ivec2 WindowSize;
 		b8 IsBorderlessFullscreen;

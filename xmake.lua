@@ -30,6 +30,15 @@ add_requires(
         configs = libsoundio_config
     })
 add_requires(
+    "thorvg v1.0-pre10",
+    {
+        debug = is_mode("debug"),
+        configs = {
+            loaders = {"svg"},
+            -- log = is_mode("debug"),
+        }
+    })
+add_requires(
     "stb 2025.03.14",
     "thorvg v1.0-pre10",
     "libsoundio",

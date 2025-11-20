@@ -228,16 +228,16 @@ namespace PeepoDrumKit
     }
 
 	template <typename TEvent>
-	constexpr std::string_view DisplayNameOfChartEvent = DisplayNameOfChartEvent_Fallback<TEvent>(); // Forbid usage unless specialized
+	inline constexpr std::string_view DisplayNameOfChartEvent = DisplayNameOfChartEvent_Fallback<TEvent>(); // Forbid usage unless specialized
 	template <typename TEvent>
-	constexpr std::string_view DisplayNameOfLongChartEvent = DisplayNameOfChartEvent<TEvent>;
+	inline constexpr std::string_view DisplayNameOfLongChartEvent = DisplayNameOfChartEvent<TEvent>;
 	template <typename TEvent>
-	constexpr std::string_view DisplayNameOfChartEvents = ConstevalStrJoined<DisplayNameOfChartEvent<TEvent>, PluralSuffixDefault>;
+	inline constexpr std::string_view DisplayNameOfChartEvents = ConstevalStrJoined<DisplayNameOfChartEvent<TEvent>, PluralSuffixDefault>;
 	template <typename TEvent>
-	constexpr std::string_view DisplayNameOfLongChartEvents = DisplayNameOfChartEvents<TEvent>;
+	inline constexpr std::string_view DisplayNameOfLongChartEvents = DisplayNameOfChartEvents<TEvent>;
 
-	template <> constexpr std::string_view DisplayNameOfChartEvent<TempoChange> = "Tempo Change";
-	template <> constexpr std::string_view DisplayNameOfChartEvent<TimeSignatureChange> = "Time Signature Change";
+	template <> inline constexpr std::string_view DisplayNameOfChartEvent<TempoChange> = "Tempo Change";
+	template <> inline constexpr std::string_view DisplayNameOfChartEvent<TimeSignatureChange> = "Time Signature Change";
 
 	// TODO: Animations for create / delete AND for moving left / right (?)
 	struct Note
@@ -256,18 +256,18 @@ namespace PeepoDrumKit
 		constexpr Beat GetStart() const { return BeatTime; }
 		constexpr Beat GetEnd() const { return BeatTime + BeatDuration; }
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<Note> = "Note";
-	template <> constexpr std::string_view DisplayNameOfLongChartEvent<Note> = "Long Note";
+	template <> inline constexpr std::string_view DisplayNameOfChartEvent<Note> = "Note";
+	template <> inline constexpr std::string_view DisplayNameOfLongChartEvent<Note> = "Long Note";
 
 	static_assert(sizeof(Note) == 32, "Accidentally introduced padding to Note struct (?)");
 
 	template <typename TEvent>
-	TEvent FallbackEvent = std::declval<TEvent>(); // Forbid usage unless specialized
+	inline TEvent FallbackEvent = std::declval<TEvent>(); // Forbid usage unless specialized
 
 	template <>
-	constexpr TempoChange FallbackEvent<TempoChange> = {Beat::Zero(), FallbackTempo};
+	inline constexpr TempoChange FallbackEvent<TempoChange> = {Beat::Zero(), FallbackTempo};
 	template <>
-	constexpr TimeSignatureChange FallbackEvent<TimeSignatureChange> = {Beat::Zero(), FallbackTimeSignature};
+	inline constexpr TimeSignatureChange FallbackEvent<TimeSignatureChange> = {Beat::Zero(), FallbackTimeSignature};
 
 	struct ScrollChange
 	{
@@ -275,10 +275,10 @@ namespace PeepoDrumKit
 		Complex ScrollSpeed;
 		b8 IsSelected;
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<ScrollChange> = "Scroll Changes";
+	template <> inline constexpr std::string_view DisplayNameOfChartEvent<ScrollChange> = "Scroll Changes";
 
 	template <>
-	constexpr ScrollChange FallbackEvent<ScrollChange> = {Beat::Zero(), Complex(1.0f, 0.0f)};
+	inline constexpr ScrollChange FallbackEvent<ScrollChange> = {Beat::Zero(), Complex(1.0f, 0.0f)};
 
 	struct ScrollType
 	{
@@ -299,10 +299,10 @@ namespace PeepoDrumKit
 			}
 		}
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<ScrollType> = "Scroll Type";
+	template <> inline constexpr std::string_view DisplayNameOfChartEvent<ScrollType> = "Scroll Type";
 
 	template <>
-	constexpr ScrollType FallbackEvent<ScrollType> = {Beat::Zero(), ScrollMethod::NMSCROLL};
+	inline constexpr ScrollType FallbackEvent<ScrollType> = {Beat::Zero(), ScrollMethod::NMSCROLL};
 
 	struct JPOSScrollChange
 	{
@@ -311,10 +311,10 @@ namespace PeepoDrumKit
 		f32 Duration;
 		b8 IsSelected;
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<JPOSScrollChange> = "JPOSScroll";
+	template <> inline constexpr std::string_view DisplayNameOfChartEvent<JPOSScrollChange> = "JPOSScroll";
 
 	template <>
-	constexpr JPOSScrollChange FallbackEvent<JPOSScrollChange> = {Beat::Zero(), Complex(100.0f, 0.0f), 0.f};
+	inline constexpr JPOSScrollChange FallbackEvent<JPOSScrollChange> = {Beat::Zero(), Complex(100.0f, 0.0f), 0.f};
 
 	struct BarLineChange
 	{
@@ -322,10 +322,10 @@ namespace PeepoDrumKit
 		b8 IsVisible;
 		b8 IsSelected;
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<BarLineChange> = "Bar Line Change";
+	template <> inline constexpr std::string_view DisplayNameOfChartEvent<BarLineChange> = "Bar Line Change";
 
 	template <>
-	constexpr BarLineChange FallbackEvent<BarLineChange> = {Beat::Zero(), true};
+	inline constexpr BarLineChange FallbackEvent<BarLineChange> = {Beat::Zero(), true};
 
 	struct GoGoRange
 	{
@@ -338,10 +338,10 @@ namespace PeepoDrumKit
 		constexpr Beat GetStart() const { return BeatTime; }
 		constexpr Beat GetEnd() const { return BeatTime + BeatDuration; }
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<GoGoRange> = "Go-Go Range";
+	template <> inline constexpr std::string_view DisplayNameOfChartEvent<GoGoRange> = "Go-Go Range";
 
 	template <>
-	constexpr GoGoRange FallbackEvent<GoGoRange> = {};
+	inline constexpr GoGoRange FallbackEvent<GoGoRange> = {};
 
 	struct LyricChange
 	{
@@ -349,7 +349,7 @@ namespace PeepoDrumKit
 		std::string Lyric;
 		b8 IsSelected;
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<LyricChange> = "Lyric Change";
+	template <> inline constexpr std::string_view DisplayNameOfChartEvent<LyricChange> = "Lyric Change";
 
 	template <>
 	inline LyricChange FallbackEvent<LyricChange> = {};

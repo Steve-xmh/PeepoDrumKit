@@ -154,6 +154,8 @@ namespace ApplicationHost
 			std::cout << "Error: SDL_CreateGPUDevice(): " << SDL_GetError() << std::endl;
 			return 1;
 		}
+		
+		GlobalState.SDL_GPUDeviceHandle = gpu_device;
 
 		if (!SDL_ClaimWindowForGPUDevice(gpu_device, window))
 		{
