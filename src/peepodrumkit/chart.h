@@ -449,25 +449,25 @@ namespace PeepoDrumKit
 	};
 
 	template <auto ChartProject::* Attr>
-	extern constexpr std::string_view DisplayNameOfChartProjectAttr; // defined later
+	inline constexpr std::string_view DisplayNameOfChartProjectAttr = "";
 
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartDuration> = "Chart Duration";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitle> = "Chart Title";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitleLocalized> = "Chart Title Localized";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartSubtitle> = "Chart Subtitle";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartSubtitleLocalized> = "Chart Subtitle Localized";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartCreator> = "Chart Creator";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartGenre> = "Chart Genre";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartLyricsFileName> = "Chart Lyrics File";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongOffset> = "Song Offset";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongDemoStartTime> = "Song Demo Start";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongFileName> = "Song File";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongJacket> = "Song Jacket";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongVolume> = "Song Volume";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SoundEffectVolume> = "Sound Effect Volume";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::BackgroundImageFileName> = "Background Image";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::BackgroundMovieFileName> = "Background Movie";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::MovieOffset> = "Movie Offset";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartDuration> = "Chart Duration";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitle> = "Chart Title";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitleLocalized> = "Chart Title Localized";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartSubtitle> = "Chart Subtitle";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartSubtitleLocalized> = "Chart Subtitle Localized";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartCreator> = "Chart Creator";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartGenre> = "Chart Genre";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartLyricsFileName> = "Chart Lyrics File";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongOffset> = "Song Offset";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongDemoStartTime> = "Song Demo Start";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongFileName> = "Song File";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongJacket> = "Song Jacket";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongVolume> = "Song Volume";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SoundEffectVolume> = "Sound Effect Volume";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::BackgroundImageFileName> = "Background Image";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::BackgroundMovieFileName> = "Background Movie";
+	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::MovieOffset> = "Movie Offset";
 
 	// NOTE: Chart Space -> Starting at 00:00.000 (as most internal calculations are done in)
 	//		  Song Space -> Starting relative to Song Offset (sometimes useful for displaying to the user)
@@ -550,17 +550,11 @@ namespace PeepoDrumKit
 	constexpr cstr GenericListNames[] = { "TempoChanges", "SignatureChanges", "Notes_Normal", "Notes_Expert", "Notes_Master", "ScrollChanges", "BarLineChanges", "GoGoRanges", "Lyrics", "ScrollType", "JPOSScroll", };
 	constexpr cstr GenericMemberNames[] = { "IsSelected", "BarLineVisible", "BalloonPopCount", "ScrollSpeed", "Start", "Duration", "Offset", "NoteType", "Tempo", "TimeSignature", "Lyric", "ScrollType", "JPOSScroll", "JPOSScrollDuration", };
 
-	// Member availability queries
-	template <typename T, GenericMember Member>
-	extern constexpr b8 IsMemberAvailable; // defined later
+    
 
-	template <typename T, GenericMember... Members>
-	constexpr GenericMemberFlags GetAvailableMemberFlags(enum_sequence<GenericMember, Members...>) {
-		return (GenericMemberFlags_None | ... | (IsMemberAvailable<T, Members> ? EnumToFlag(Members) : 0));
-	}
+    
 
-	template <typename T>
-	constexpr GenericMemberFlags AvailableMemberFlags = ForceConsteval<GetAvailableMemberFlags<T>(make_enum_sequence<GenericMember>())>;
+    
 
 	union GenericMemberUnion
 	{
@@ -754,6 +748,14 @@ namespace PeepoDrumKit
 	template <typename T, GenericMember Member>
 	constexpr b8 IsMemberAvailable = has_get_v<T, Member> && !std::is_void_v<decltype(get_or_forward<Member>(std::declval<T>()))>;
 
+	template <typename T, GenericMember... Members>
+	constexpr GenericMemberFlags GetAvailableMemberFlags(enum_sequence<GenericMember, Members...>) {
+		return (GenericMemberFlags_None | ... | (IsMemberAvailable<T, Members> ? EnumToFlag(Members) : 0));
+	}
+
+	template <typename T>
+	constexpr GenericMemberFlags AvailableMemberFlags = ForceConsteval<GetAvailableMemberFlags<T>(make_enum_sequence<GenericMember>())>;
+
 	// Apply `action` on `args` resolved by `member` if available, otherwise return `vDefault` on nothing if valid, otherwise return `vError`
 	// If `TRet` is not specified, all of `action`'s possible return values, `vDefault`, and `vError` must have the same type
 	template <typename TRet = keep_deduced_t, typename FAction, typename TDefault, typename TError, typename... TCastedArgs >
@@ -834,7 +836,7 @@ namespace PeepoDrumKit
 	}
 
 	// need to be lambdas to be used as arguments with to-be-deduced parameter types (not needed since C++20)
-	constexpr auto GetGeneric = [&](auto&& typedMember, auto& typedOutValue)
+	constexpr auto GetGeneric = [](auto&& typedMember, auto& typedOutValue)
 	{
 		if constexpr (expect_type_v<decltype(typedMember), std::string> && !expect_type_v<decltype(typedOutValue), std::string>) // for GenericMember::CStr_Lyric
 			typedOutValue = typedMember.data();
@@ -842,7 +844,7 @@ namespace PeepoDrumKit
 			typedOutValue = static_cast<std::remove_reference_t<decltype(typedOutValue)>>(typedMember);
 	};
 
-	constexpr auto SetGeneric = [&](auto& typedMember, auto&& typedInValue)
+	constexpr auto SetGeneric = [](auto& typedMember, auto&& typedInValue)
 	{
 		typedMember = static_cast<std::remove_reference_t<decltype(typedMember)>>(typedInValue);
 	};

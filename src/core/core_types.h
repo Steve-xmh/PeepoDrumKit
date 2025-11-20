@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <stdint.h>
+#include <cstring>
 #include <limits>
 #include <cfloat>
 #include <cmath>
@@ -21,6 +22,14 @@
 
 #if !defined(vsprintf_s)
 #define vsprintf_s(data, ...) vsnprintf(data, sizeof(data), __VA_ARGS__)
+#endif
+
+#if !defined(strcpy_s)
+#define strcpy_s(dest, src) snprintf((dest), sizeof(dest), "%s", (src))
+#endif
+
+#if !defined(strcat_s)
+#define strcat_s(dest, src) strncat((dest), (src), sizeof(dest) - strlen(dest) - 1)
 #endif
 
 template<typename R>

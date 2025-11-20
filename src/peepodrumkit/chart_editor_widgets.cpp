@@ -1184,9 +1184,9 @@ namespace PeepoDrumKit
 									continue;
 
 								char buttonName[64];
-								sprintf_s(buttonName, "[ %s ]  x%zu", listTypeNames[EnumToIndex(list)], perListSelectionCounts[EnumToIndex(list)]);
-								if (list == GenericList::Notes_Master) { strcat_s(buttonName, " (Master)"); }
-								if (list == GenericList::Notes_Expert) { strcat_s(buttonName, " (Expert)"); }
+								snprintf(buttonName, sizeof(buttonName), "[ %s ]  x%zu", listTypeNames[EnumToIndex(list)], perListSelectionCounts[EnumToIndex(list)]);
+								if (list == GenericList::Notes_Master) { strncat(buttonName, " (Master)", sizeof(buttonName) - strlen(buttonName) - 1); }
+								if (list == GenericList::Notes_Expert) { strncat(buttonName, " (Expert)", sizeof(buttonName) - strlen(buttonName) - 1); }
 
 								Gui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, { 0.0f, 0.0f });
 								Gui::PushStyleColor(ImGuiCol_Button, Gui::GetColorU32(ImGuiCol_FrameBg));
@@ -1565,14 +1565,14 @@ namespace PeepoDrumKit
 								}
 								else if (!isSelectionAlreadyInterpolated)
 								{
-									previewStrings[0] = previewBuffersStartEnd[0]; sprintf_s(previewBuffersStartEnd[0], 
+									previewStrings[0] = previewBuffersStartEnd[0]; snprintf(previewBuffersStartEnd[0], sizeof(previewBuffersStartEnd[0]), 
 										(i == 0) 
 										? "(%gx)" 
 										: (i == 1) 
 										? "(%gix)" 
-										:"(%g BPM)"
+										: "(%g BPM)"
 										, inOutStartEnd[0]);
-									previewStrings[1] = previewBuffersStartEnd[1]; sprintf_s(previewBuffersStartEnd[1], 
+									previewStrings[1] = previewBuffersStartEnd[1]; snprintf(previewBuffersStartEnd[1], sizeof(previewBuffersStartEnd[1]), 
 										(i == 0)
 										? "(%gx)"
 										: (i == 1)
@@ -1668,7 +1668,7 @@ namespace PeepoDrumKit
 
 								const b8 isSingleNoteType = (commonEqualMemberFlags & EnumToFlag(member));
 								char previewValue[256] {}; if (!isSingleNoteType) { previewValue[0] = '('; }
-								for (i32 i = 0; i < EnumCountI32<NoteType>; i++) { if (perNoteTypeHasAtLeastOneSelected[i]) { strcat_s(previewValue, noteTypeNames[i]); strcat_s(previewValue, ", "); } }
+								for (i32 i = 0; i < EnumCountI32<NoteType>; i++) { if (perNoteTypeHasAtLeastOneSelected[i]) { strncat(previewValue, noteTypeNames[i], sizeof(previewValue) - strlen(previewValue) - 1); strncat(previewValue, ", ", sizeof(previewValue) - strlen(previewValue) - 1); } }
 								for (i32 i = ArrayCountI32(previewValue) - 1; i >= 0; i--) { if (previewValue[i] == ',') { if (!isSingleNoteType) { previewValue[i++] = ')'; } previewValue[i] = '\0'; break; } }
 
 								Gui::SetNextItemWidth(-1.0f);

@@ -62,7 +62,7 @@ namespace Audio
 				}
 
 				soundio_outstream_get_latency(outstream, &backend->lastRenderLatency);
-				// printf("SoundIO render latency: %.3f ms\n", backend->lastRenderLatency * 1000.0);
+				printf("SoundIO render latency: %.3f ms\n", backend->lastRenderLatency * 1000.0);
 
 				frames_left -= frame_count;
 			}
