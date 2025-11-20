@@ -22,7 +22,7 @@ namespace Audio
 			struct SoundIoChannelArea *areas;
 			int frames_left = Clamp((int)(outstream->software_latency * outstream->sample_rate), frame_count_min, frame_count_max);
 			if (frame_count_min == 0)
-				frames_left = (int)(outstream->sample_rate * 0.01); // 10ms buffer
+				frames_left = (int)(outstream->sample_rate * 0.002); // 2ms buffer
 			backend->renderBuffer.resize(static_cast<size_t>(frame_count_max * outstream->layout.channel_count));
 
 			while (frames_left > 0)
@@ -62,7 +62,7 @@ namespace Audio
 				}
 
 				soundio_outstream_get_latency(outstream, &backend->lastRenderLatency);
-				printf("SoundIO render latency: %.3f ms\n", backend->lastRenderLatency * 1000.0);
+				// printf("SoundIO render latency: %.3f ms\n", backend->lastRenderLatency * 1000.0);
 
 				frames_left -= frame_count;
 			}
@@ -208,7 +208,10 @@ namespace Audio
 				printf("unable to start device: %s", soundio_strerror(err));
 				return false;
 			}
+
+			printf("SoundIO outstream started: %d Hz, %d channels, %.3f ms latency\n", outstream_local->sample_rate, outstream_local->layout.channel_count, outstream_local->software_latency * 1000.0);
 			// Store params and callback to member variables
+
 			streamParam = param;
 			renderCallback = std::move(callback);
 

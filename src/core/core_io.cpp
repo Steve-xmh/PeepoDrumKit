@@ -335,29 +335,23 @@ namespace Shell
 		Folder
 	};
 
-	struct FileDialogData
-	{
-		FileDialog *Dialog;
-		std::function<void(FileDialogResult result)> onSuccessCallback;
-	};
-
 	static void SDL_DialogCallback(void *userdata, const char *const *filelist, int filter)
 	{
-		FileDialogData *dialog = reinterpret_cast<FileDialogData *>(userdata);
+		auto dialog = reinterpret_cast<FileDialog *>(userdata);
 		if (filelist != nullptr)
 		{
-			dialog->Dialog->OutFilePath = std::string(filelist[0]);
-			dialog->onSuccessCallback(FileDialogResult::OK);
+			dialog->OutFilePath = std::string(filelist[0]);
+			dialog->onCallback(FileDialogResult::OK);
 		}
 		else
 		{
-			dialog->Dialog->OutFilePath.clear();
-			dialog->onSuccessCallback(FileDialogResult::Cancel);
+			dialog->OutFilePath.clear();
+			dialog->onCallback(FileDialogResult::Cancel);
 		}
 		delete dialog;
 	}
 
-	static b8 CreateAndShowFileDialog(FileDialog &dialog, DialogType dialogType, DialogPickType pickType, std::function<void(FileDialogResult result)> onSuccessCallback = nullptr)
+	static b8 CreateAndShowFileDialog(FileDialog &dialog, DialogType dialogType, DialogPickType pickType)
 	{
 		if (!SDL_IsMainThread())
 			return false;
@@ -367,6 +361,8 @@ namespace Shell
 			SDL_SetStringProperty(props, SDL_PROP_FILE_DIALOG_TITLE_STRING, dialog.InTitle.data());
 		if (!dialog.InFileName.empty())
 			SDL_SetStringProperty(props, SDL_PROP_FILE_DIALOG_ACCEPT_STRING, dialog.InFileName.data());
+		if (dialog.InParentWindowHandle != nullptr)
+			SDL_SetPointerProperty(props, SDL_PROP_FILE_DIALOG_WINDOW_POINTER, dialog.InParentWindowHandle);
 
 		if (!dialog.InDefaultExtension.empty())
 		{
@@ -403,9 +399,7 @@ namespace Shell
 			return false;
 		}
 
-		FileDialogData *dialogData = new FileDialogData{&dialog, onSuccessCallback};
-
-		SDL_ShowFileDialogWithProperties(sdlDialogType, SDL_DialogCallback, dialogData, props);
+		SDL_ShowFileDialogWithProperties(sdlDialogType, SDL_DialogCallback, &dialog, props);
 
 		SDL_DestroyProperties(props);
 

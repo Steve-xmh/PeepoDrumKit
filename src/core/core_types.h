@@ -576,10 +576,10 @@ inline i64 Absolute(i64 value) { return (value >= static_cast<i64>(0)) ? value :
 inline f32 Absolute(f32 value) { return ::fabsf(value); }
 inline f64 Absolute(f64 value) { return ::fabs(value); }
 
-inline b8 ApproxmiatelySame(Complex a, Complex b, f32 threshold = 0.0001f) { return Absolute(a.GetRealPart() - b.GetRealPart()) < threshold && Absolute(a.GetImaginaryPart() - b.GetImaginaryPart()) < threshold; }
-inline b8 ApproxmiatelySame(f32 a, f32 b, f32 threshold = 0.0001f) { return Absolute(a - b) < threshold; }
-inline b8 ApproxmiatelySame(f64 a, f64 b, f64 threshold = 0.0001) { return Absolute(a - b) < threshold; }
-inline b8 ApproxmiatelySame(vec2 a, vec2 b, f32 threshold = 0.0001f) { return ApproxmiatelySame(a.x, b.x, threshold) && ApproxmiatelySame(a.y, b.y, threshold); }
+inline b8 ApproxmiatelySame(Complex a, Complex b, f32 threshold = std::numeric_limits<f32>::epsilon()) { return Absolute(a.GetRealPart() - b.GetRealPart()) < threshold && Absolute(a.GetImaginaryPart() - b.GetImaginaryPart()) < threshold; }
+inline b8 ApproxmiatelySame(f32 a, f32 b, f32 threshold = std::numeric_limits<f32>::epsilon()) { return Absolute(a - b) < threshold; }
+inline b8 ApproxmiatelySame(f64 a, f64 b, f64 threshold = std::numeric_limits<f64>::epsilon()) { return Absolute(a - b) < threshold; }
+inline b8 ApproxmiatelySame(vec2 a, vec2 b, f32 threshold = std::numeric_limits<f32>::epsilon()) { return ApproxmiatelySame(a.x, b.x, threshold) && ApproxmiatelySame(a.y, b.y, threshold); }
 
 constexpr f32 ToPercent(f32 value) { return (value * 100.0f); }
 constexpr f32 FromPercent(f32 percent) { return (percent * 0.01f); }

@@ -2242,37 +2242,48 @@ namespace PeepoDrumKit
 	{
 		MousePosLastFrame = MousePosThisFrame;
 		MousePosThisFrame = Gui::GetMousePos();
+		
+		auto &io = Gui::GetIO();
 
 		// NOTE: Mouse scroll / zoom
-		if (!ApproxmiatelySame(Gui::GetIO().MouseWheel, 0.0f))
+		if (!ApproxmiatelySame(io.MouseWheel, 0.0f))
 		{
-			vec2 scrollStep = vec2(Gui::GetIO().KeyShift ? *Settings.General.TimelineScrollDistancePerMouseWheelTickFast : *Settings.General.TimelineScrollDistancePerMouseWheelTick);
+			vec2 scrollStep = vec2(io.KeyShift ? *Settings.General.TimelineScrollDistancePerMouseWheelTickFast : *Settings.General.TimelineScrollDistancePerMouseWheelTick);
 			scrollStep.y *= 0.75f;
 			if (*Settings.General.TimelineScrollInvertMouseWheel)
 				scrollStep.x *= -1.0f;
 
-			if (IsSidebarWindowHovered)
+			if (IsContentHeaderWindowHovered || IsContentWindowHovered)
 			{
-#if 0 // NOTE: Not needed at the moment for small number of rows
-				if (!Gui::GetIO().KeyAlt)
-					Camera.PositionTarget.y -= (Gui::GetIO().MouseWheel * scrollStep.y);
-#endif
-			}
-			else if (IsContentHeaderWindowHovered || IsContentWindowHovered)
-			{
-				if (Gui::GetIO().KeyAlt)
+				if (io.KeyAlt)
 				{
 					const f32 zoomFactorX = *Settings.General.TimelineZoomFactorPerMouseWheelTick;
-					const f32 newZoomX = (Gui::GetIO().MouseWheel > 0.0f) ? (Camera.ZoomTarget.x * zoomFactorX) : (Camera.ZoomTarget.x / zoomFactorX);
+					const f32 newZoomX = (io.MouseWheel > 0.0f) ? (Camera.ZoomTarget.x * zoomFactorX) : (Camera.ZoomTarget.x / zoomFactorX);
 					Camera.SetZoomTargetAroundLocalPivot(vec2(newZoomX, Camera.ZoomTarget.y), ScreenToLocalSpace(Gui::GetMousePos()));
 				}
 				else
 				{
-					if (Gui::GetIO().KeyCtrl)
-						Camera.PositionTarget.y -= (Gui::GetIO().MouseWheel * scrollStep.y);
+					if (io.KeyCtrl)
+						Camera.PositionTarget.y -= (io.MouseWheel * scrollStep.y);
 					else
-						Camera.PositionTarget.x += (Gui::GetIO().MouseWheel * scrollStep.x);
+						Camera.PositionTarget.x += (io.MouseWheel * scrollStep.x);
 				}
+			}
+		}
+		
+		if (!ApproxmiatelySame(io.MouseWheelH, 0.0f))
+		{
+			vec2 scrollStep = vec2(io.KeyShift ? *Settings.General.TimelineScrollDistancePerMouseWheelTickFast : *Settings.General.TimelineScrollDistancePerMouseWheelTick);
+			scrollStep.y *= 0.75f;
+			if (*Settings.General.TimelineScrollInvertMouseWheel)
+				scrollStep.x *= -1.0f;
+
+			if (IsContentHeaderWindowHovered || IsContentWindowHovered)
+			{
+				if (io.KeyCtrl)
+					Camera.PositionTarget.y -= (io.MouseWheel * scrollStep.y);
+				else
+					Camera.PositionTarget.x += (io.MouseWheel * scrollStep.x);
 			}
 		}
 

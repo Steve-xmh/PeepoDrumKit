@@ -3,6 +3,7 @@
 #include <string_view>
 #include <vector>
 #include <memory>
+#include <functional>
 
 namespace Path
 {
@@ -129,6 +130,7 @@ namespace Shell
 		std::string_view InFileName;
 		std::string_view InDefaultExtension;
 		std::vector<FileFilter> InFilters;
+		std::function<void(FileDialogResult result)> onCallback;
 		u32 InOutFilterIndex = 0;
 		void* InParentWindowHandle = nullptr;
 		std::string OutFilePath;

@@ -83,6 +83,7 @@ namespace PeepoDrumKit
 		std::future<AsyncImportChartResult> importChartFuture {};
 		std::future<AsyncLoadSongResult> loadSongFuture {};
 		std::future<AsyncLoadJacketResult> loadJacketFuture {};
+		Shell::FileDialog fileDialog {};
 		CPUStopwatch loadSongStopwatch = {};
 		b8 createBackupOfOriginalTJABeforeOverwriteSave = false;
 		b8 wasAudioEngineRunningIdleOnFocusLost = false;

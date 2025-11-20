@@ -143,6 +143,8 @@ namespace ApplicationHost
 			return -1;
 		}
 
+		GlobalState.NativeWindowHandle = window;
+
 		SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 		SDL_ShowWindow(window);
 
