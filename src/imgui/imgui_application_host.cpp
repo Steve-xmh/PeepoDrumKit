@@ -168,7 +168,6 @@ namespace ApplicationHost
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	  // Enable Docking
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;	  // Enable Multi-Viewport / Platform Windows
 		io.IniFilename = "settings_imgui.ini";
 		// auto font = io.Fonts->AddFontFromFileTTF(FontFilePath, 16.0f);
 
@@ -177,10 +176,8 @@ namespace ApplicationHost
 		auto &style = ImGui::GetStyle();
 		style.ScaleAllSizes(main_scale); // Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
 		style.FontScaleDpi = main_scale;
-#if GLFW_VERSION_MAJOR >= 3 && GLFW_VERSION_MINOR >= 3
-		io.ConfigDpiScaleFonts = true;	   // [Experimental] Automatically overwrite style.FontScaleDpi in Begin() when Monitor DPI changes. This will scale fonts but _NOT_ scale sizes/padding for now.
-		io.ConfigDpiScaleViewports = true; // [Experimental] Scale Dear ImGui and Platform Windows when Monitor DPI changes.
-#endif
+		io.ConfigDpiScaleFonts = true;
+		io.ConfigDpiScaleViewports = true;
 
 		// Setup Platform/Renderer backends
 		ImGui_ImplSDL3_InitForSDLGPU(window);
@@ -215,7 +212,6 @@ namespace ApplicationHost
 			ImGui_ImplSDLGPU3_NewFrame();
 			ImGui_ImplSDL3_NewFrame();
 			ImGui::NewFrame();
-			ImGui_UpdateInternalInputExtraDataAtStartOfFrame();
 
 			// Render here
 			{

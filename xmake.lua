@@ -10,6 +10,25 @@ add_requires(
             sdl3_gpu = true,
         }
     })
+
+libsoundio_config = {}
+
+if is_os("windows") then
+    libsoundio_config.wasapi = true
+elseif is_os("macosx") then
+    libsoundio_config.coreaudio = true
+elseif is_os("linux") then
+    libsoundio_config.alsa = true
+    libsoundio_config.jack = true
+    libsoundio_config.pulseaudio = true
+end
+    
+add_requires(
+    "libsoundio",
+    {
+        debug = is_mode("debug"),
+        configs = libsoundio_config
+    })
 add_requires(
     "stb 2025.03.14",
     "thorvg v1.0-pre10",

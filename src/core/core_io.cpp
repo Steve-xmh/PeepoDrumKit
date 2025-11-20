@@ -193,6 +193,7 @@ namespace CommandLine
 	CommandLineArrayView GetCommandLineUTF8()
 	{
 		// TODO: Implement properly (though it is not used)
+		return CommandLineArrayView{0, nullptr};
 	}
 }
 

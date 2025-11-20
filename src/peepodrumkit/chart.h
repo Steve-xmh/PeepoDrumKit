@@ -217,9 +217,18 @@ namespace PeepoDrumKit
 	};
 
 	constexpr std::string_view PluralSuffixDefault = "s"; // unfortunately cannot just pass the string literal for now
+	
+    template <typename>
+    struct dependent_false : std::false_type { };
+	
+    template <typename TEvent>
+    constexpr std::string_view DisplayNameOfChartEvent_Fallback() {
+        static_assert(dependent_false<TEvent>::value, "DisplayNameOfChartEvent must be specialized for this type");
+        return {};
+    }
 
 	template <typename TEvent>
-	constexpr std::string_view DisplayNameOfChartEvent = std::string_view(); // Forbid usage unless specialized
+	constexpr std::string_view DisplayNameOfChartEvent = DisplayNameOfChartEvent_Fallback<TEvent>(); // Forbid usage unless specialized
 	template <typename TEvent>
 	constexpr std::string_view DisplayNameOfLongChartEvent = DisplayNameOfChartEvent<TEvent>;
 	template <typename TEvent>
@@ -440,7 +449,7 @@ namespace PeepoDrumKit
 	};
 
 	template <auto ChartProject::* Attr>
-	extern constexpr std::string_view DisplayNameOfChartProjectAttr = std::string_view(); // defined later
+	extern constexpr std::string_view DisplayNameOfChartProjectAttr; // defined later
 
 	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartDuration> = "Chart Duration";
 	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitle> = "Chart Title";
@@ -541,27 +550,9 @@ namespace PeepoDrumKit
 	constexpr cstr GenericListNames[] = { "TempoChanges", "SignatureChanges", "Notes_Normal", "Notes_Expert", "Notes_Master", "ScrollChanges", "BarLineChanges", "GoGoRanges", "Lyrics", "ScrollType", "JPOSScroll", };
 	constexpr cstr GenericMemberNames[] = { "IsSelected", "BarLineVisible", "BalloonPopCount", "ScrollSpeed", "Start", "Duration", "Offset", "NoteType", "Tempo", "TimeSignature", "Lyric", "ScrollType", "JPOSScroll", "JPOSScrollDuration", };
 
-	// Member availability queries (helper trait + get_or_forward)
-	template <typename T, auto Tag, typename = void>
-	struct has_get_t : std::false_type {};
-
-	template <typename T, auto Tag>
-	struct has_get_t<T, Tag, std::void_t<decltype(get<Tag>(std::forward<T>(std::declval<T&&>())))>> : std::true_type {};
-
-	template <typename T, auto Tag>
-	constexpr b8 has_get_v = has_get_t<T, Tag>::value;
-
-	template <auto Tag, typename T>
-	constexpr decltype(auto) get_or_forward(T&& value)
-	{
-		if constexpr (has_get_v<T, Tag>)
-			return get<Tag>(std::forward<T>(value));
-		else
-			return std::forward<T>(value);
-	}
-
+	// Member availability queries
 	template <typename T, GenericMember Member>
-	constexpr b8 IsMemberAvailable = has_get_v<T, Member> && !std::is_void_v<decltype(get_or_forward<Member>(std::declval<T>()))>;
+	extern constexpr b8 IsMemberAvailable; // defined later
 
 	template <typename T, GenericMember... Members>
 	constexpr GenericMemberFlags GetAvailableMemberFlags(enum_sequence<GenericMember, Members...>) {
@@ -741,7 +732,27 @@ namespace PeepoDrumKit
 		else if constexpr (Member == GenericMember::Beat_Start) return (std::forward<JPOSScrollChangeT>(event).BeatTime);
 	}
 
-    
+	// Member availability queries
+	template <typename T, auto Tag, typename = void>
+	struct has_get_t : std::false_type {};
+
+	template <typename T, auto Tag>
+	struct has_get_t<T, Tag, std::void_t<decltype(get<Tag>(std::forward<T>(std::declval<T&&>())))>> : std::true_type {};
+
+	template <typename T, auto Tag>
+	constexpr b8 has_get_v = has_get_t<T, Tag>::value;
+
+	template <auto Tag, typename T>
+	constexpr decltype(auto) get_or_forward(T&& value)
+	{
+		if constexpr (has_get_v<T, Tag>)
+			return get<Tag>(std::forward<T>(value));
+		else
+			return std::forward<T>(value);
+	}
+
+	template <typename T, GenericMember Member>
+	constexpr b8 IsMemberAvailable = has_get_v<T, Member> && !std::is_void_v<decltype(get_or_forward<Member>(std::declval<T>()))>;
 
 	// Apply `action` on `args` resolved by `member` if available, otherwise return `vDefault` on nothing if valid, otherwise return `vError`
 	// If `TRet` is not specified, all of `action`'s possible return values, `vDefault`, and `vError` must have the same type
@@ -823,7 +834,7 @@ namespace PeepoDrumKit
 	}
 
 	// need to be lambdas to be used as arguments with to-be-deduced parameter types (not needed since C++20)
-	constexpr auto GetGeneric = [](auto&& typedMember, auto& typedOutValue)
+	constexpr auto GetGeneric = [&](auto&& typedMember, auto& typedOutValue)
 	{
 		if constexpr (expect_type_v<decltype(typedMember), std::string> && !expect_type_v<decltype(typedOutValue), std::string>) // for GenericMember::CStr_Lyric
 			typedOutValue = typedMember.data();
@@ -831,7 +842,7 @@ namespace PeepoDrumKit
 			typedOutValue = static_cast<std::remove_reference_t<decltype(typedOutValue)>>(typedMember);
 	};
 
-	constexpr auto SetGeneric = [](auto& typedMember, auto&& typedInValue)
+	constexpr auto SetGeneric = [&](auto& typedMember, auto&& typedInValue)
 	{
 		typedMember = static_cast<std::remove_reference_t<decltype(typedMember)>>(typedInValue);
 	};

@@ -14,6 +14,7 @@ namespace Audio
 
 	static std::unique_ptr<IAudioBackend> CreateBackendInterface(Backend backend)
 	{
+		
 #ifdef _WIN32
 		switch (backend)
 		{
@@ -23,8 +24,8 @@ namespace Audio
 		}
 #endif // _WIN32
 
-		assert(false);
-		return nullptr;
+		// Use LibSoundIO as fallback/default
+		return std::make_unique<LibSoundIOBackend>();
 	}
 
 	using VoiceFlags = u16;
