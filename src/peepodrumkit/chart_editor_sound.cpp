@@ -12,19 +12,19 @@ namespace PeepoDrumKit
 			AsyncLoadSoundEffectsResult result {};
 			for (size_t i = 0; i < EnumCount<SoundEffectType>; i++)
 			{
-				const std::string_view inFilePath = SoundEffectTypeFilePaths[i];
+				const cstr inFilePath = SoundEffectTypeFilePaths[i];
 				auto& resultBuffer = result.SampleBuffers[i];
 
 				auto[fileContent, fileSize] = File::ReadAllBytes(Directory::GetResourceDirectory() + "/" + inFilePath);
 				if (fileContent == nullptr || fileSize == 0)
 				{
-					printf("Failed to read file '%.*s'\n", FmtStrViewArgs(inFilePath));
+					printf("Failed to read file '%s'\n", inFilePath);
 					continue;
 				}
 
 				if (Audio::DecodeEntireFile(inFilePath, fileContent.get(), fileSize, resultBuffer) != Audio::DecodeFileResult::FeelsGoodMan)
 				{
-					printf("Failed to decode audio file '%.*s'\n", FmtStrViewArgs(inFilePath));
+					printf("Failed to decode audio file '%s'\n", inFilePath);
 					continue;
 				}
 
