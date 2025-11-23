@@ -2262,7 +2262,7 @@ namespace PeepoDrumKit
 					Camera.PositionTarget.x -= (io.MouseWheelH * scrollStep.x);
 			}
 		}
-		else if (!ApproxmiatelySame(io.MouseWheel, 0.0f))
+		else if (!ApproxmiatelySame(io.MouseWheel, 0.0f) && io.KeyAlt)
 		{
 			const f32 zoomFactorX = *Settings.General.TimelineZoomFactorPerMouseWheelTick;
 			const f32 newZoomX = (io.MouseWheel > 0.0f) ? (Camera.ZoomTarget.x * zoomFactorX) : (Camera.ZoomTarget.x / zoomFactorX);

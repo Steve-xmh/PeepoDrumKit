@@ -143,8 +143,10 @@ namespace File
 		size_t dataSize = 0;
 		auto data = SDL_LoadFile(filePath.data(), &dataSize);
 
-		if (data == nullptr)
+		if (data == nullptr) {
+			std::cout << "SDL_LoadFile failed for '" << filePath << "': " << SDL_GetError() << std::endl;
 			return UniqueFileContent{};
+		}
 
 		std::unique_ptr<u8[]> contentBuffer = std::make_unique<u8[]>(dataSize);
 		std::memcpy(contentBuffer.get(), data, dataSize);
@@ -190,10 +192,25 @@ namespace File
 
 namespace CommandLine
 {
-	CommandLineArrayView GetCommandLineUTF8()
+	static std::atomic<bool> commandLineSet = false;
+	static std::vector<std::string> commandLineArguments;
+	
+	std::vector<std::string>& GetCommandLineUTF8()
 	{
-		// TODO: Implement properly (though it is not used)
-		return CommandLineArrayView{0, nullptr};
+		return commandLineArguments;
+	}
+
+	void SetCommandLineSTD(int argc, const char **argv)
+	{
+		if (commandLineSet.load())
+			return;
+		commandLineSet = true;
+
+		commandLineArguments.reserve(argc);
+		for (int i = 0; i < argc; ++i)
+		{
+			commandLineArguments.emplace_back(argv[i]);
+		}
 	}
 }
 
@@ -225,22 +242,22 @@ namespace Directory
 		GetModuleFileNameW(nullptr, path, FILENAME_MAX);
 		return std::filesystem::path(path).string();
 #else
-		char path[FILENAME_MAX];
-		ssize_t count = readlink("/proc/self/exe", path, FILENAME_MAX);
-		return std::filesystem::path(std::string(path, (count > 0) ? count : 0));
+		auto args = CommandLine::GetCommandLineUTF8();
+		return args.empty() ? "" : std::string(args[0]);
 #endif
 	}
 
 	std::string GetExecutableDirectory()
 	{
-#if defined(_MSC_VER)
-		wchar_t path[FILENAME_MAX] = {0};
-		GetModuleFileNameW(nullptr, path, FILENAME_MAX);
-		return std::filesystem::path(path).parent_path().string();
+		return std::filesystem::path(GetExecutablePath()).parent_path().string();
+	}
+	
+	std::string GetResourceDirectory()
+	{
+#ifdef SDL_PLATFORM_MACOS
+		return std::filesystem::path(GetExecutableDirectory()).parent_path().append("Resources").string();
 #else
-		char path[FILENAME_MAX];
-		ssize_t count = readlink("/proc/self/exe", path, FILENAME_MAX);
-		return std::filesystem::path(std::string(path, (count > 0) ? count : 0)).parent_path().string();
+		return GetExecutableDirectory();
 #endif
 	}
 

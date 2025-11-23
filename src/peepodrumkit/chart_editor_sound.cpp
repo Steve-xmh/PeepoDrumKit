@@ -15,7 +15,7 @@ namespace PeepoDrumKit
 				const std::string_view inFilePath = SoundEffectTypeFilePaths[i];
 				auto& resultBuffer = result.SampleBuffers[i];
 
-				auto[fileContent, fileSize] = File::ReadAllBytes(inFilePath);
+				auto[fileContent, fileSize] = File::ReadAllBytes(Directory::GetResourceDirectory() + "/" + inFilePath);
 				if (fileContent == nullptr || fileSize == 0)
 				{
 					printf("Failed to read file '%.*s'\n", FmtStrViewArgs(inFilePath));

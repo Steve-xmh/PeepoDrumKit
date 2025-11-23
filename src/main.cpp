@@ -1,4 +1,5 @@
 #include "peepodrumkit/chart_editor_main.h"
+#include "core/core_io.h"
 
 #if _WIN32
 
@@ -15,8 +16,9 @@ static void Win32SetupConsoleMagic()
 
 #ifdef PEEPO_DEBUG
 
-int main(int, const char **)
+int main(int argc, const char ** argv)
 {
+    CommandLine::SetCommandLineSTD(argc, argv);
 #if _WIN32
     Win32SetupConsoleMagic();
 #endif // _WIN32
@@ -36,13 +38,18 @@ static void Win32SetupConsoleMagic()
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
     Win32SetupConsoleMagic();
+    auto cmd = GetCommandLineW();
+    int argc = 0;
+    auto argv = CommandLineToArgvW(cmd, &argc);
+    CommandLine::SetCommandLineSTD(argc, argv);
     return PeepoDrumKit::EntryPoint();
 }
 
 #else // _WIN32
 
-int main(int, const char **)
+int main(int argc, const char ** argv)
 {
+    CommandLine::SetCommandLineSTD(argc, argv);
 #if WIN32
     Win32SetupConsoleMagic();
 #endif // WIN32

@@ -171,7 +171,7 @@ namespace PeepoDrumKit
 
 			for (const SprTypeDesc& it : SprDescTable)
 			{
-				auto fileContent = File::ReadAllBytes(it.FilePath);
+				auto fileContent = File::ReadAllBytes(Directory::GetResourceDirectory() + "/" + it.FilePath);
 #if PEEPO_DEBUG // DEBUG: ...
 				if (fileContent.Content == nullptr)
 					printf("Failed to read sprite file '%s'\n", it.FilePath);

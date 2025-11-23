@@ -519,9 +519,10 @@ namespace PeepoDrumKit
 			sprintf_s(performanceTextBuffer, "[ %.3f ms (%.1f FPS) ]", (1000.0f / Gui::GetIO().Framerate), Gui::GetIO().Framerate);
 
 			char audioTextBuffer[128];
+			#define AudioDeviceMenuLabel "##audioTextMenu"
 			if (Audio::Engine.GetIsStreamOpenRunning())
 			{
-				sprintf_s(audioTextBuffer, "[ %gkHz %zubit %dch ~%.0fms %s ]",
+				sprintf_s(audioTextBuffer, "[ %gkHz %zubit %dch ~%.0fms %s ]" AudioDeviceMenuLabel,
 					static_cast<f64>(Audio::Engine.OutputSampleRate) / 1000.0,
 					sizeof(i16) * BitsPerByte,
 					Audio::Engine.OutputChannelCount,
@@ -530,12 +531,13 @@ namespace PeepoDrumKit
 			}
 			else
 			{
-				strcpy_s(audioTextBuffer, "[ Audio Device Closed ]");
+				strcpy_s(audioTextBuffer, "[ Audio Device Closed ]" AudioDeviceMenuLabel);
 			}
 
+			const size_t audioTextLength = strlen(audioTextBuffer) - strlen(AudioDeviceMenuLabel);
 			const f32 perItemItemSpacing = (Gui::GetStyle().ItemSpacing.x * 2.0f);
 			const f32 performanceMenuWidth = Gui::CalcTextSize(performanceTextBuffer).x + perItemItemSpacing;
-			const f32 audioMenuWidth = Gui::CalcTextSize(audioTextBuffer).x + perItemItemSpacing;
+			const f32 audioMenuWidth = Gui::CalcTextSize(audioTextBuffer, audioTextBuffer + audioTextLength).x + perItemItemSpacing;
 
 			{
 				Gui::SeparatorEx(ImGuiSeparatorFlags_Vertical);

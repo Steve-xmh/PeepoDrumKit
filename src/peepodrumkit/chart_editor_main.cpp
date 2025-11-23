@@ -115,6 +115,10 @@ namespace PeepoDrumKit
 	{
 		// TODO: Parse arguments and write into global argv settings struct
 		// auto[argc, argv] = CommandLine::GetCommandLineUTF8();
+		
+		Directory::SetWorkingDirectory(Directory::GetExecutableDirectory());
+		std::cout << "Working Directory: " << Directory::GetWorkingDirectory() << std::endl;
+		std::cout << "Resource Directory: " << Directory::GetResourceDirectory() << std::endl;
 
 		while (true)
 		{

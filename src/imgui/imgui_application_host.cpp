@@ -104,7 +104,7 @@ namespace ApplicationHost
 			FontMain = nullptr;
 		}
 
-		std::string fontFilePath = "assets/" + FontMainFileNameCurrent;
+		std::string fontFilePath = Directory::GetResourceDirectory() + "/assets/" + FontMainFileNameCurrent;
 
 		FontMain = io.Fonts->AddFontFromFileTTF(fontFilePath.c_str(), 16.0f);
 		if (FontMain == nullptr)

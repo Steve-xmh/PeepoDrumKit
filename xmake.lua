@@ -94,13 +94,39 @@ target("PeepoDrumKit")
         add_syslinks("Shlwapi", "Shell32", "Ole32", "dxgi", "d3d11", "ntdll")
         -- add_packages("directxshadercompiler")
         -- add_rules("utils.hlsl2spv", {bin2c = true})
+    elseif is_os("macosx") then
+        add_rules("xcode.application")
+        add_files("src/Info.plist")
     end
     
-    after_build(function (target)
-        os.cp("$(projectdir)/locales", target:targetdir() .. "/")
-        os.cp("$(projectdir)/assets", target:targetdir() .. "/")
+    is_macosx = is_os("macosx")
+    
+    if is_os("macosx") then
+        after_build(function (target)
+            print("Copying resource files into app bundle...")
+            destDir = path.join(target:targetdir(), "PeepoDrumKit.app", "Contents", "Resources")
+            
+            os.mkdir(destDir)
 
-        if os.exists("$(projectdir)/assets_override") then
-            os.cp("$(projectdir)/assets_override/*", target:targetdir() .. "/assets")
-        end
-    end)
+            print("Copying resources to: " .. destDir)
+            os.cp("$(projectdir)/src_res/PeepoDrumKit.icns", destDir)
+
+            os.cp("$(projectdir)/locales", destDir)
+            os.cp("$(projectdir)/assets", destDir)
+
+            if os.exists("$(projectdir)/assets_override") then
+                os.cp("$(projectdir)/assets_override/*", destDir .. "/assets")
+            end
+        end)
+    else
+        after_build(function (target)
+            destDir = target:targetdir()
+
+            os.cp("$(projectdir)/locales", destDir)
+            os.cp("$(projectdir)/assets", destDir)
+
+            if os.exists("$(projectdir)/assets_override") then
+                os.cp("$(projectdir)/assets_override/*", destDir .. "/assets")
+            end
+        end)
+    end

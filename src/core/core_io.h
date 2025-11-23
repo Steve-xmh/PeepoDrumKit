@@ -11,10 +11,35 @@ namespace Path
 	constexpr char DirectorySeparator = '/', DirectorySeparatorWin32 = '\\';
 	constexpr cstr DirectorySeparators = "/\\";
 
-	constexpr char InvalidPathCharacters[] = { '\"', '<', '>', '|', '\0', };
-	constexpr char InvalidFileNameCharacters[] = { '\"', '<', '>', '|', ':', '*', '?', '\\', '/', '\0', };
+	constexpr char InvalidPathCharacters[] = {
+		'\"',
+		'<',
+		'>',
+		'|',
+		'\0',
+	};
+	constexpr char InvalidFileNameCharacters[] = {
+		'\"',
+		'<',
+		'>',
+		'|',
+		':',
+		'*',
+		'?',
+		'\\',
+		'/',
+		'\0',
+	};
 
-	constexpr b8 IsValidPathChar(char charToCheck) { for (char invalid : InvalidFileNameCharacters) { if (charToCheck == invalid) return false; } return true; }
+	constexpr b8 IsValidPathChar(char charToCheck)
+	{
+		for (char invalid : InvalidFileNameCharacters)
+		{
+			if (charToCheck == invalid)
+				return false;
+		}
+		return true;
+	}
 
 	std::string_view GetExtension(std::string_view filePath);
 	std::string_view TrimExtension(std::string_view filePath);
@@ -35,10 +60,10 @@ namespace Path
 
 	// NOTE: Replace '\\' -> '/' etc.
 	std::string CopyAndNormalize(std::string_view filePath);
-	std::string& NormalizeInPlace(std::string& inOutFilePath);
+	std::string &NormalizeInPlace(std::string &inOutFilePath);
 	// NOTE: Replace '/' -> '\\' etc.
 	std::string CopyAndNormalizeWin32(std::string_view filePath);
-	std::string& NormalizeInPlaceWin32(std::string& inOutFilePath);
+	std::string &NormalizeInPlaceWin32(std::string &inOutFilePath);
 }
 
 namespace File
@@ -48,12 +73,12 @@ namespace File
 		std::unique_ptr<u8[]> Content;
 		size_t Size;
 
-		inline std::string_view AsString() const { return std::string_view(reinterpret_cast<const char*>(Content.get()), Size); }
+		inline std::string_view AsString() const { return std::string_view(reinterpret_cast<const char *>(Content.get()), Size); }
 	};
 
 	UniqueFileContent ReadAllBytes(std::string_view filePath);
-	b8 WriteAllBytes(std::string_view filePath, const void* fileContent, size_t fileSize);
-	b8 WriteAllBytes(std::string_view filePath, const UniqueFileContent& uniqueFileContent);
+	b8 WriteAllBytes(std::string_view filePath, const void *fileContent, size_t fileSize);
+	b8 WriteAllBytes(std::string_view filePath, const UniqueFileContent &uniqueFileContent);
 	b8 WriteAllBytes(std::string_view filePath, const std::string_view textFileContent);
 
 	b8 Exists(std::string_view filePath);
@@ -69,19 +94,15 @@ namespace Directory
 	std::string GetExecutablePath();
 	std::string GetExecutableDirectory();
 	std::string GetWorkingDirectory();
+	std::string GetResourceDirectory();
 	void SetWorkingDirectory(std::string_view directoryPath);
 }
 
 namespace CommandLine
 {
-	struct CommandLineArrayView
-	{
-		size_t Count;
-		std::string_view* Arguments;
-	};
-
 	// NOTE: Arguments[0] = program path, the returned string_views are also null-terminated
-	CommandLineArrayView GetCommandLineUTF8();
+	std::vector<std::string>& GetCommandLineUTF8();
+	void SetCommandLineSTD(int argc, const char **argv);
 }
 
 namespace Shell
@@ -94,12 +115,49 @@ namespace Shell
 	// void OpenExplorerProperties(std::string_view filePath);
 	// void OpenWithDefaultProgram(std::string_view filePath);
 
-	enum class MessageBoxButtons : u8 { AbortRetryIgnore, CancelTryContinue, OK, OKCancel, RetryCancel, YesNo, YesNoCancel };
-	enum class MessageBoxIcon : u8 { Asterisk, Error, Exclamation, Hand, Information, None, Question, Stop, Warning };
-	enum class MessageBoxResult : u8 { Abort, Cancel, Continue, Ignore, No, None, OK, Retry, TryAgain, Yes };
-	MessageBoxResult ShowMessageBox(std::string_view message, std::string_view title, MessageBoxButtons buttons, MessageBoxIcon icon, void* parentWindowHandle);
+	enum class MessageBoxButtons : u8
+	{
+		AbortRetryIgnore,
+		CancelTryContinue,
+		OK,
+		OKCancel,
+		RetryCancel,
+		YesNo,
+		YesNoCancel
+	};
+	enum class MessageBoxIcon : u8
+	{
+		Asterisk,
+		Error,
+		Exclamation,
+		Hand,
+		Information,
+		None,
+		Question,
+		Stop,
+		Warning
+	};
+	enum class MessageBoxResult : u8
+	{
+		Abort,
+		Cancel,
+		Continue,
+		Ignore,
+		No,
+		None,
+		OK,
+		Retry,
+		TryAgain,
+		Yes
+	};
+	MessageBoxResult ShowMessageBox(std::string_view message, std::string_view title, MessageBoxButtons buttons, MessageBoxIcon icon, void *parentWindowHandle);
 
-	enum class FileDialogItemType { VisualGroupStart, VisualGroupEnd, Checkbox };
+	enum class FileDialogItemType
+	{
+		VisualGroupStart,
+		VisualGroupEnd,
+		Checkbox
+	};
 
 	struct FileDialogItem
 	{
@@ -107,7 +165,7 @@ namespace Shell
 		std::string_view Label;
 		struct ItemData
 		{
-			b8* CheckboxChecked;
+			b8 *CheckboxChecked;
 		} InOut;
 	};
 
@@ -122,7 +180,12 @@ namespace Shell
 		std::string_view Spec;
 	};
 
-	enum class FileDialogResult { OK, Cancel, Error };
+	enum class FileDialogResult
+	{
+		OK,
+		Cancel,
+		Error
+	};
 
 	struct FileDialog
 	{
@@ -132,7 +195,7 @@ namespace Shell
 		std::vector<FileFilter> InFilters;
 		std::function<void(FileDialogResult result)> onCallback;
 		u32 InOutFilterIndex = 0;
-		void* InParentWindowHandle = nullptr;
+		void *InParentWindowHandle = nullptr;
 		std::string OutFilePath;
 
 		b8 OpenRead();
