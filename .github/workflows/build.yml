@@ -21,7 +21,7 @@ jobs:
 
       - name: Configure xmake (Release, x64)
         run: |
-          xmake f -m release -a x64
+          xmake f -m release -a x64 -y
 
       - name: Build
         run: |
@@ -63,7 +63,7 @@ jobs:
 
       - name: Configure xmake (Release, ${{ matrix.arch }})
         run: |
-          xmake f -m release -a ${{ matrix.arch }}
+          xmake f -m release -a ${{ matrix.arch }} -y
 
       - name: Build
         run: |
