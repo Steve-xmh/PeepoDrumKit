@@ -125,5 +125,15 @@ namespace CustomDraw
 	ImTextureID GPUTexture::GetTexID() const { return (ImTextureID)(intptr_t)&this->Binding; }
 	void DrawWaveformChunk(ImDrawList *drawList, Rect rect, u32 color, const WaveformChunk &chunk)
 	{
+		// TODO: Optimize with a single triangle strip or a custom GPU shader
+		f32 lineThinkness = rect.GetWidth() / static_cast<f32>(WaveformPixelsPerChunk);
+		for (i32 i = 0; i < WaveformPixelsPerChunk; i++)
+		{
+			f32 amplitude = chunk.PerPixelAmplitude[i];
+			f32 x = rect.TL.x + (i * lineThinkness);
+			f32 yCenter = rect.GetCenter().y;
+			f32 yOffset = (amplitude * 0.5f) * rect.GetHeight();
+			drawList->AddLine(ImVec2(x, yCenter - yOffset), ImVec2(x, yCenter + yOffset), color, lineThinkness);
+		}
 	}
 }
