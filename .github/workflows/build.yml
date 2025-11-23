@@ -1,91 +1,93 @@
 name: Build and Package
 
 on:
-    push:
-        branches: [main]
-    pull_request:
-        branches: [main]
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-    build-windows:
-        runs-on: windows-latest
+  build-windows:
+    runs-on: windows-latest
 
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
-              with:
-                  submodules: recursive
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-            - name: Setup xmake
-              uses: xmake-io/github-action-setup-xmake@v1
-              with:
-                  xmake-version: latest
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
 
-            - name: Configure xmake (Release, x64)
-              run: |
-                  xmake f -m release -a x64 -y
+      - name: Configure xmake (Release, x64)
+        run: |
+          xmake f -m release -a x64 -y
 
-            - name: Build
-              run: |
-                  xmake -v
+      - name: Build
+        run: |
+          xmake -v
 
-            - name: Locate build output
-              id: locate
-              shell: pwsh
-              run: |
-                  $buildDir = "build/windows/x64/release"
-                  if (-not (Test-Path $buildDir)) {
-                    Write-Error "Build directory '$buildDir' not found."
-                  }
-                  Write-Host "Build directory: $buildDir"
-                  "build_dir=$buildDir" >> $env:GITHUB_OUTPUT
+      - name: Locate build output
+        id: locate
+        shell: pwsh
+        run: |
+          $buildDir = "build/windows/x64/release"
+          if (-not (Test-Path $buildDir)) {
+            Write-Error "Build directory '$buildDir' not found."
+          }
+          Write-Host "Build directory: $buildDir"
+          "build_dir=$buildDir" >> $env:GITHUB_OUTPUT
 
-            - name: Upload artifact (binary + assets)
-              uses: actions/upload-artifact@v4
-              with:
-                  name: peepodrumkit-windows-x64
-                  path: |
-                      ${{ steps.locate.outputs.build_dir }}/
-                  if-no-files-found: error
+      - name: Upload artifact (binary + assets)
+        uses: actions/upload-artifact@v4
+        with:
+          name: peepodrumkit-windows-x64
+          path: |
+            ${{ steps.locate.outputs.build_dir }}/
+          if-no-files-found: error
 
-    build-macos:
-        runs-on: macos-latest
-        strategy:
-            matrix:
-                arch: [x86_64, arm64]
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
 
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-            - name: Setup xmake
-              uses: xmake-io/github-action-setup-xmake@v1
-              with:
-                  xmake-version: latest
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
 
-            - name: Configure xmake (Release, ${{ matrix.arch }})
-              run: |
-                  xmake f -m release -a ${{ matrix.arch }} -y
+      - name: Configure xmake (Release, ${{ matrix.arch }})
+        run: |
+          xmake f -m release -a ${{ matrix.arch }} -y
 
-            - name: Build
-              run: |
-                  xmake -v
+      - name: Build
+        run: |
+          xmake -v
 
-            - name: Locate build output
-              id: locate
-              run: |
-                  buildDir="build/macosx/${{ matrix.arch }}/release"
-                  if [ ! -d "$buildDir" ]; then
-                    echo "Build directory '$buildDir' not found." >&2
-                    exit 1
-                  fi
-                  echo "Build directory: $buildDir"
-                  echo "build_dir=$buildDir" >> "$GITHUB_OUTPUT"
+      - name: Locate build output
+        id: locate
+        run: |
+          buildDir="build/macosx/${{ matrix.arch }}/release"
+          if [ ! -d "$buildDir" ]; then
+            echo "Build directory '$buildDir' not found." >&2
+            exit 1
+          fi
+          echo "Build directory: $buildDir"
+          echo "build_dir=$buildDir" >> "$GITHUB_OUTPUT"
 
-            - name: Upload artifact (app bundle + assets)
-              uses: actions/upload-artifact@v4
-              with:
-                  name: peepodrumkit-macos-${{ matrix.arch }}
-                  path: |
-                      ${{ steps.locate.outputs.build_dir }}/
-                  if-no-files-found: error
+      - name: Upload artifact (app bundle + assets)
+        uses: actions/upload-artifact@v4
+        with:
+          name: peepodrumkit-macos-${{ matrix.arch }}
+          path: |
+            ${{ steps.locate.outputs.build_dir }}/
+          if-no-files-found: error
