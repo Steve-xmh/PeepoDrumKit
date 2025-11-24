@@ -212,7 +212,17 @@ namespace ASCII
 	template <typename T>
 	constexpr b8 TryParsePrimitive(std::string_view string, T& out)
 	{
-		const std::from_chars_result result = std::from_chars(string.data(), string.data() + string.size(), out);
+		const std::from_chars_result result = std::from_chars(string.data(), string.data() + string.size(), out, 10);
+		const b8 hasNoError = (result.ec == std::errc {});
+		const b8 parsedFully = (result.ptr == string.data() + string.size());
+
+		return hasNoError && parsedFully;
+	}
+	
+	template <typename T>
+	constexpr b8 TryParseFloatingPrimitive(std::string_view string, T& out)
+	{
+		const std::from_chars_result result = std::from_chars(string.data(), string.data() + string.size(), out, std::chars_format::general);
 		const b8 hasNoError = (result.ec == std::errc {});
 		const b8 parsedFully = (result.ptr == string.data() + string.size());
 
@@ -223,8 +233,8 @@ namespace ASCII
 	b8 TryParse(std::string_view string, i32& out) { return TryParsePrimitive(string, out); }
 	b8 TryParse(std::string_view string, u64& out) { return TryParsePrimitive(string, out); }
 	b8 TryParse(std::string_view string, i64& out) { return TryParsePrimitive(string, out); }
-	b8 TryParse(std::string_view string, f32& out) { return TryParsePrimitive(string, out); }
-	b8 TryParse(std::string_view string, f64& out) { return TryParsePrimitive(string, out); }
+	b8 TryParse(std::string_view string, f32& out) { return TryParseFloatingPrimitive(string, out); }
+	b8 TryParse(std::string_view string, f64& out) { return TryParseFloatingPrimitive(string, out); }
 	b8 TryParse(std::string_view string, Complex& out) {
 		std::istringstream in(std::string{string});
 		in >> out;
