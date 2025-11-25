@@ -220,13 +220,39 @@ namespace ASCII
 	}
 	
 	template <typename T>
-	constexpr b8 TryParseFloatingPrimitive(std::string_view string, T& out)
+	b8 TryParseFloatingPrimitive(std::string_view string, T& out)
 	{
-		const std::from_chars_result result = std::from_chars(string.data(), string.data() + string.size(), out, std::chars_format::general);
-		const b8 hasNoError = (result.ec == std::errc {});
-		const b8 parsedFully = (result.ptr == string.data() + string.size());
+		// 跳过前后空白（如果不想允许空白，也可以去掉这段）
+		auto first = string.data();
+		auto last  = string.data() + string.size();
 
-		return hasNoError && parsedFully;
+		// 建一个以 '\0' 结尾的临时字符串，方便用 C 接口
+		std::string tmp(first, last);
+		char* endPtr = nullptr;
+
+		errno = 0;
+		if constexpr (std::is_same_v<T, float>)
+		{
+			float value = std::strtof(tmp.c_str(), &endPtr);
+			if (endPtr != tmp.c_str() + tmp.size() || errno == ERANGE)
+				return false;
+			out = value;
+			return true;
+		}
+		else if constexpr (std::is_same_v<T, double>)
+		{
+			double value = std::strtod(tmp.c_str(), &endPtr);
+			if (endPtr != tmp.c_str() + tmp.size() || errno == ERANGE)
+				return false;
+			out = value;
+			return true;
+		}
+		else
+		{
+			static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
+						  "TryParseFloatingPrimitive only supports float/double");
+			return false;
+		}
 	}
 
 	b8 TryParse(std::string_view string, u32& out) { return TryParsePrimitive(string, out); }
