@@ -103,6 +103,7 @@ namespace CommandLine
 	// NOTE: Arguments[0] = program path, the returned string_views are also null-terminated
 	std::vector<std::string>& GetCommandLineUTF8();
 	void SetCommandLineSTD(int argc, const char **argv);
+	void SetCommandLineSTD(std::vector<std::string> argv);
 }
 
 namespace Shell

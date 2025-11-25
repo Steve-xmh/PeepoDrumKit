@@ -6,10 +6,39 @@
 #include <Windows.h>
 #include <fcntl.h>
 #include <io.h>
+#include <vector>
+#include <string>
+#include <memory>
+#include <utility>
 
 static void Win32SetupConsoleMagic()
 {
     ::SetConsoleOutputCP(CP_UTF8);
+}
+
+static void Win32SetupCommandLine()
+{
+    auto cmd = GetCommandLineW();
+    int argc = 0;
+    auto argv = CommandLineToArgvW(cmd, &argc);
+    auto args = std::vector<std::string>();
+    args.reserve(argc);
+    for (int i = 0; i < argc; ++i)
+    {
+        int requiredSize = ::WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr);
+        if (requiredSize > 0)
+        {
+            std::string utf8Arg;
+            utf8Arg.resize(requiredSize - 1);
+            ::WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, utf8Arg.data(), requiredSize, nullptr, nullptr);
+            args.push_back(std::move(utf8Arg));
+        }
+        else
+        {
+            args.push_back("");
+        }
+    }
+    CommandLine::SetCommandLineSTD(std::move(args));
 }
 
 #endif // _WIN32
@@ -18,9 +47,9 @@ static void Win32SetupConsoleMagic()
 
 int main(int argc, const char ** argv)
 {
-    CommandLine::SetCommandLineSTD(argc, argv);
 #if _WIN32
     Win32SetupConsoleMagic();
+    Win32SetupCommandLine();
 #endif // _WIN32
     return PeepoDrumKit::EntryPoint();
 }
@@ -38,10 +67,7 @@ static void Win32SetupConsoleMagic()
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
     Win32SetupConsoleMagic();
-    auto cmd = GetCommandLineW();
-    int argc = 0;
-    auto argv = CommandLineToArgvW(cmd, &argc);
-    CommandLine::SetCommandLineSTD(argc, argv);
+    Win32SetupCommandLine();
     return PeepoDrumKit::EntryPoint();
 }
 

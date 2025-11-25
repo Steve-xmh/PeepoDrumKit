@@ -167,7 +167,6 @@ namespace ApplicationHost
 		}
 
 		auto device_backend = SDL_GetGPUDeviceDriver(gpu_device);
-		std::cout << "Using GPU Device Backend: " << device_backend << std::endl;
 		return gpu_device;
 	}
 

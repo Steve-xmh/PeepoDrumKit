@@ -212,6 +212,15 @@ namespace CommandLine
 			commandLineArguments.emplace_back(argv[i]);
 		}
 	}
+	
+	void SetCommandLineSTD(std::vector<std::string> argv)
+	{
+		if (commandLineSet.load())
+			return;
+		commandLineSet = true;
+
+		commandLineArguments = std::move(argv);
+	}
 }
 
 namespace Directory
