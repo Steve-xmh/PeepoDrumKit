@@ -50,6 +50,8 @@ int main(int argc, const char ** argv)
 #if _WIN32
     Win32SetupConsoleMagic();
     Win32SetupCommandLine();
+#else
+    CommandLine::SetCommandLineSTD(argc, argv);
 #endif // _WIN32
     return PeepoDrumKit::EntryPoint();
 }
