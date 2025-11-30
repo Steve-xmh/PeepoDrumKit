@@ -206,7 +206,11 @@ namespace PeepoDrumKit
 			WithDefault<MultiInputBinding> Timeline_Cut = { KeyBinding(ImGuiKey_X, ImGuiMod_Ctrl) };
 			WithDefault<MultiInputBinding> Timeline_Copy = { KeyBinding(ImGuiKey_C, ImGuiMod_Ctrl) };
 			WithDefault<MultiInputBinding> Timeline_Paste = { KeyBinding(ImGuiKey_V, ImGuiMod_Ctrl) };
+#if defined(__APPLE__)
+			WithDefault<MultiInputBinding> Timeline_DeleteSelection = { KeyBinding(ImGuiKey_Backspace) };
+#else // defined(__APPLE__)
 			WithDefault<MultiInputBinding> Timeline_DeleteSelection = { KeyBinding(ImGuiKey_Delete) };
+#endif // defined(__APPLE__)
 			WithDefault<MultiInputBinding> Timeline_StartEndRangeSelection = { KeyBinding(ImGuiKey_Tab) };
 			WithDefault<MultiInputBinding> Timeline_SelectAll = {};
 			WithDefault<MultiInputBinding> Timeline_ClearSelection = {};
