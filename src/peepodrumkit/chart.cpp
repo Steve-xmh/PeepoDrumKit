@@ -179,28 +179,61 @@ namespace PeepoDrumKit
 		
 		b8 isBarlineVisible = inFumen.Measures.empty() ? true : static_cast<b8>(inFumen.Measures[0].Data.IsBarLineVisible);
 		Tempo currentBpm = inFumen.Measures.empty() ? FallbackTempo : Tempo(inFumen.Measures[0].Data.BPM);
+		f32 currentScrollSpeed = inFumen.Measures.empty() ? 1.0f : inFumen.Measures[0].NormalNotesScrollSpeed;
+		f32 firstMeasureOffset = inFumen.Measures.empty() ? 0.0f : inFumen.Measures[0].Data.MeasureOffset;
+		f32 bpmChangeOffsetAccum = 0.0f;
+		auto gogoTimeStartMeasure = std::optional<size_t>();
 		
 		out.Courses.clear();
 		ChartCourse& course = *out.Courses.emplace_back(std::make_unique<ChartCourse>());
 		
 		course.TempoMap.Tempo.Sorted.emplace_back(TempoChange { Beat::Zero(), currentBpm });
+		course.TempoMap.Signature.Sorted.emplace_back(TimeSignatureChange { Beat::Zero(), TimeSignature(4, 4) });
+		course.TempoMap.RebuildAccelerationStructure();
 		course.BarLineChanges.Sorted.emplace_back(BarLineChange { Beat::Zero(), isBarlineVisible });
 		
 		for (auto it = inFumen.Measures.begin(); it != inFumen.Measures.end(); ++it)
 		{
 			auto& measure = *it;
-			auto pos = course.TempoMap.TimeToBeat(Time::FromMS(measure.Data.MeasureOffset));
+			auto pos = Time::FromMS(measure.Data.MeasureOffset - firstMeasureOffset + bpmChangeOffsetAccum);
 			if (!ApproxmiatelySame(measure.Data.BPM, currentBpm.BPM))
 			{
+				f32 bpmChangeOffset = (4.0f * 60000.0f / currentBpm.BPM) - (4.0f * 60000.0f / measure.Data.BPM);
+				bpmChangeOffsetAccum -= bpmChangeOffset;
 				currentBpm = Tempo(measure.Data.BPM);
-				course.TempoMap.Tempo.Sorted.emplace_back(TempoChange { pos, currentBpm });
+				pos = Time::FromMS(measure.Data.MeasureOffset - firstMeasureOffset + bpmChangeOffsetAccum);
+				auto posBeat = course.TempoMap.TimeToBeat(pos);
+				course.TempoMap.Tempo.Sorted.emplace_back(TempoChange { posBeat, currentBpm });
+				course.TempoMap.RebuildAccelerationStructure();
+			}
+			if (!ApproxmiatelySame(measure.NormalNotesScrollSpeed, currentScrollSpeed))
+			{
+				currentScrollSpeed = measure.NormalNotesScrollSpeed;
+				course.ScrollChanges.Sorted.emplace_back(ScrollChange { course.TempoMap.TimeToBeat(pos), Complex(currentScrollSpeed, 0) });
 			}
 			if (static_cast<b8>(measure.Data.IsBarLineVisible) != isBarlineVisible)
 			{
 				isBarlineVisible = static_cast<b8>(measure.Data.IsBarLineVisible);
-				course.BarLineChanges.Sorted.emplace_back(BarLineChange { pos, isBarlineVisible });
+				course.BarLineChanges.Sorted.emplace_back(BarLineChange { course.TempoMap.TimeToBeat(pos), isBarlineVisible });
 			}
-			// TODO: Measure Division Data and correction of note position
+			if (gogoTimeStartMeasure.has_value())
+			{
+				if (measure.Data.IsGogoTime == 0)
+				{
+					auto& startMeasure = inFumen.Measures[*gogoTimeStartMeasure];
+					auto startPos = Time::FromMS(startMeasure.Data.MeasureOffset);
+					course.GoGoRanges.Sorted.emplace_back(GoGoRange {
+						.BeatTime = course.TempoMap.TimeToBeat(startPos),
+						.BeatDuration = course.TempoMap.TimeToBeat(pos - startPos),
+					});
+					gogoTimeStartMeasure.reset();
+				}
+			}
+			else if (measure.Data.IsGogoTime != 0)
+			{
+				gogoTimeStartMeasure = std::distance(inFumen.Measures.begin(), it);
+			}
+			// TODO: Measure Division Data and correction of bar line position
 			for (auto nit = measure.NormalNotes.begin(); nit != measure.NormalNotes.end(); ++nit)
 			{
 				auto& note = *nit;
@@ -209,20 +242,34 @@ namespace PeepoDrumKit
 					continue;
 
 				Note& outNote = course.Notes_Normal.Sorted.emplace_back();
-				outNote.BeatTime = pos + course.TempoMap.TimeToBeat(Time::FromMS(note.NoteOffset));
+				outNote.BeatTime = course.TempoMap.TimeToBeat(pos + Time::FromMS(note.NoteOffset));
 				outNote.Type = noteType;
 				outNote.TimeOffset = Time::Zero();
 
-				if (note.Type == Fumen::FormatV2::NoteType::NoteType_Balloon)
+				if (note.Type == Fumen::FormatV2::NoteType::NoteType_Balloon || note.Type == Fumen::FormatV2::NoteType::NoteType_Bell)
 				{
-					outNote.BalloonPopCount = static_cast<i16>(note.InitialScoreValue);
+					if (note.InitialScoreValue == 0)
+						outNote.BalloonPopCount = static_cast<i16>(note.BalloonHitCount_Old);
+					else
+						outNote.BalloonPopCount = static_cast<i16>(note.InitialScoreValue);
 					outNote.BeatDuration = course.TempoMap.TimeToBeat(Time::FromMS(note.Length));
 				}
-				if (note.isRendaNote())
+				else if (note.isRendaNote())
 				{
 					outNote.BeatDuration = course.TempoMap.TimeToBeat(Time::FromMS(note.Length));
 				}
 			}
+		}
+		
+		if (gogoTimeStartMeasure.has_value())
+		{
+			auto& startMeasure = inFumen.Measures[*gogoTimeStartMeasure];
+			auto startPos = course.TempoMap.TimeToBeat(Time::FromMS(startMeasure.Data.MeasureOffset));
+			auto endPos = course.TempoMap.TimeToBeat(out.GetDurationOrDefault());
+			course.GoGoRanges.Sorted.emplace_back(GoGoRange {
+				.BeatTime = startPos,
+				.BeatDuration = endPos - startPos,
+			});
 		}
 		
 		if (!course.Notes_Normal.Sorted.empty())

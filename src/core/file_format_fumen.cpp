@@ -10,7 +10,7 @@ namespace Fumen::FormatV2
         {
         case Difficulty::Easy:
         case Difficulty::Normal:
-            ResetJudgeTiming(41.7083358764648f, 108.441665649414f, 125.125000000000f);
+            ResetJudgeTiming(41.70833588f, 108.4416656f, 125.125f);
             break;
         case Difficulty::Hard:
         case Difficulty::Oni:
@@ -36,12 +36,12 @@ namespace Fumen::FormatV2
         {
         case Difficulty::Easy:
         case Difficulty::Normal:
-            ResetJudgeTiming(41.7083358764648f, 108.441665649414f, 125.125000000000f);
+            ResetJudgeTiming(41.70833588f, 108.4416656f, 125.125f);
             break;
         case Difficulty::Hard:
         case Difficulty::Oni:
         case Difficulty::Ura:
-            ResetJudgeTiming(25.0250015258789f, 075.075004577637f, 108.441665649414f);
+            ResetJudgeTiming(25.0250015f, 75.0750046f, 108.441666f);
             break;
         default:
             // Do nothing for other difficulties.
@@ -120,10 +120,12 @@ namespace Fumen::FormatV2
         data += sizeof(Header);
     }
 
-    void FumenChartReader::ReadMeasureNotes(const u8 *&data, const u8 *dataEnd, std::vector<NoteData> &outNotes)
+    void FumenChartReader::ReadMeasureNotes(const u8 *&data, const u8 *dataEnd, std::vector<NoteData> &outNotes, f32 &scrollSpeed)
     {
         MeasureNotesData notesData;
         ReadData(data, dataEnd, notesData);
+
+        scrollSpeed = notesData.ScrollSpeed;
 
         outNotes.clear();
         outNotes.reserve(notesData.NumberOfNotes);
@@ -173,7 +175,7 @@ namespace Fumen::FormatV2
         // Read notes for all three branch paths
         try
         {
-            ReadMeasureNotes(data, dataEnd, outMeasure.NormalNotes);
+            ReadMeasureNotes(data, dataEnd, outMeasure.NormalNotes, outMeasure.NormalNotesScrollSpeed);
         }
         catch (const FumenParseException &e)
         {
@@ -182,7 +184,7 @@ namespace Fumen::FormatV2
 
         try
         {
-            ReadMeasureNotes(data, dataEnd, outMeasure.AdvancedNotes);
+            ReadMeasureNotes(data, dataEnd, outMeasure.AdvancedNotes, outMeasure.AdvancedNotesScrollSpeed);
         }
         catch (const FumenParseException &e)
         {
@@ -191,7 +193,7 @@ namespace Fumen::FormatV2
 
         try
         {
-            ReadMeasureNotes(data, dataEnd, outMeasure.MasterNotes);
+            ReadMeasureNotes(data, dataEnd, outMeasure.MasterNotes, outMeasure.MasterNotesScrollSpeed);
         }
         catch (const FumenParseException &e)
         {

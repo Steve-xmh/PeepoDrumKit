@@ -236,7 +236,7 @@ namespace Fumen
             // If the note is a balloon then it's zero.
             u16 ScoreDifferenceTimes4;
             // Dummy Data. Old balloon count.
-            u32 _Padding2;
+            u32 BalloonHitCount_Old;
             // Length of 連打 and balloons (float). Zero otherwise.
             f32 Length;
 
@@ -265,6 +265,9 @@ namespace Fumen
         struct Measure
         {
             MeasureData Data;
+            f32 NormalNotesScrollSpeed = 1.0f;
+            f32 AdvancedNotesScrollSpeed = 1.0f;
+            f32 MasterNotesScrollSpeed = 1.0f;
             std::vector<NoteData> NormalNotes;   // 普通譜面
             std::vector<NoteData> AdvancedNotes; // 玄人譜面
             std::vector<NoteData> MasterNotes;   // 達人譜面
@@ -317,7 +320,7 @@ namespace Fumen
 
             void ReadHeader(const u8 *&data, const u8 *dataEnd, Header &outHeader);
             void ReadMeasure(const u8 *&data, const u8 *dataEnd, Measure &outMeasure);
-            void ReadMeasureNotes(const u8 *&data, const u8 *dataEnd, std::vector<NoteData> &outNotes);
+            void ReadMeasureNotes(const u8 *&data, const u8 *dataEnd, std::vector<NoteData> &outNotes, f32 &scrollSpeed);
 
             [[noreturn]] void ThrowError(const std::string &reason, const u8 *position) const
             {
