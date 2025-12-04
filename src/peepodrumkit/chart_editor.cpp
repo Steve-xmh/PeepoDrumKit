@@ -139,6 +139,19 @@ namespace PeepoDrumKit
 				if (Gui::MenuItem(UI_Str("ACT_EDIT_SAVE"), ToShortcutString(*Settings.Input.Editor_ChartSave).Data)) { TrySaveChartOrOpenSaveAsDialog(context); }
 				if (Gui::MenuItem(UI_Str("ACT_FILE_SAVE_AS"), ToShortcutString(*Settings.Input.Editor_ChartSaveAs).Data)) { OpenChartSaveAsDialog(context); }
 				Gui::Separator();
+				if (Gui::BeginMenu(UI_Str("ACT_FILE_IMPORT_FROM")))
+				{
+					if (Gui::MenuItem(UI_Str("ACT_FILE_IMPORT_FROM_SINGLE_FUMEN_CHART")))
+					{
+						OpenLoadChartFileDialog(context);
+					}
+					if (Gui::MenuItem(UI_Str("ACT_FILE_IMPORT_FROM_MULTIPLE_FUMEN_CHART")))
+					{
+						OpenLoadChartFileDialog(context);
+					}
+					Gui::EndMenu();
+				}
+				Gui::Separator();
 				if (Gui::MenuItem(UI_Str("ACT_FILE_EXIT"), ToShortcutString(InputBinding(ImGuiKey_F4, ImGuiMod_Alt)).Data))
 					tryToCloseApplicationOnNextFrame = true;
 				Gui::EndMenu();
