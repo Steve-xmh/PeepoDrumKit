@@ -22,13 +22,15 @@ elseif is_os("linux") then
     libsoundio_config.jack = true
     libsoundio_config.pulseaudio = true
 end
-    
-add_requires(
-    "libsoundio",
-    {
-        debug = is_mode("debug"),
-        configs = libsoundio_config
-    })
+
+if not is_os("linux") then
+    add_requires(
+        "libsoundio",
+        {
+            debug = is_mode("debug"),
+            configs = libsoundio_config
+        })
+end
 add_requires(
     "thorvg v1.0-pre10",
     {
@@ -40,8 +42,6 @@ add_requires(
     })
 add_requires(
     "stb 2025.03.14",
-    "thorvg v1.0-pre10",
-    "libsoundio",
     "libsdl3",
     "icu4c"
     )
@@ -88,7 +88,19 @@ target("PeepoDrumKit")
     add_includedirs("src/core")
     add_includedirs("src/peepodrumkit")
     add_includedirs("libs")
-    add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3", "icu4c")
+    
+    if is_os("linux") then
+        -- Manually specify libsoundio paths for Linux distros without pkg-config
+        add_includedirs("/usr/include", "/usr/local/include")
+        add_linkdirs("/usr/lib", "/usr/local/lib", "/usr/lib/x86_64-linux-gnu")
+        add_links("soundio")
+        add_packages("imgui", "dr_libs", "stb", "thorvg", "libsdl3", "icu4c")
+        -- Suppress specific warnings on Linux
+        add_cxxflags("-fpermissive", "-Wno-changes-meaning")
+    else
+        add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3", "icu4c")
+    end
+    
     if is_os("windows") then
         -- add_files("src/imgui/*.hlsl")
         add_files("src_res/Resource.rc")

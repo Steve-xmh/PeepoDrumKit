@@ -98,3 +98,49 @@ jobs:
           path: |
             ${{ steps.locate.outputs.build_dir }}/
           if-no-files-found: error
+  
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libasound2-dev
+
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+
+      - name: Configure xmake (Release, x86_64)
+        run: |
+          xmake f -m release -a x86_64 -y
+
+      - name: Build
+        run: |
+          xmake -v
+
+      - name: Locate build output
+        id: locate
+        run: |
+          buildDir="build/linux/x86_64/release"
+          if [ ! -d "$buildDir" ]; then
+          echo "Build directory '$buildDir' not found." >&2
+          exit 1
+          fi
+          echo "Build directory: $buildDir"
+          echo "build_dir=$buildDir" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact (binary + assets)
+        uses: actions/upload-artifact@v4
+        with:
+          name: peepodrumkit-linux-x86_64
+          path: |
+            ${{ steps.locate.outputs.build_dir }}/
+          if-no-files-found: error
