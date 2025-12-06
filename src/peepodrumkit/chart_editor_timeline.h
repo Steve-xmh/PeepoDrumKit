@@ -178,9 +178,9 @@ namespace PeepoDrumKit
 	};
 	union SelectionActionParam
 	{
-		struct { i32 ShiftDelta; };
-		struct { cstr Pattern; }; // NOTE: In the format: "xo", "xoo", "xooo", "xxoo", etc.
-		struct { Beat BeatCursor; };
+		i32 ShiftDelta;
+		cstr Pattern; // NOTE: In the format: "xo", "xoo", "xooo", "xxoo", etc.
+		Beat BeatCursor;
 		inline SelectionActionParam& SetShiftDelta(i32 v) { ShiftDelta = v; return *this; }
 		inline SelectionActionParam& SetPattern(cstr pattern) { Pattern = pattern; return *this; }
 		inline SelectionActionParam& SetBeatCursor(Beat beat) { BeatCursor = beat; return *this; }

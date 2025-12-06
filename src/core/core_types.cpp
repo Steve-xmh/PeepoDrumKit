@@ -53,7 +53,7 @@ i32 Time::ToString(char *outBuffer, size_t bufferSize) const
 	static constexpr const char invalidFormatString[] = "--:--.---";
 
 	const f64 msRoundSeconds = RoundToMilliseconds(Time::FromSec(Absolute(Seconds))).Seconds;
-	if (::isnan(msRoundSeconds) || ::isinf(msRoundSeconds))
+	if (std::isnan(msRoundSeconds) || std::isinf(msRoundSeconds))
 	{
 		// NOTE: Array count of a string literal char array already accounts for the null terminator
 		memcpy(outBuffer, invalidFormatString, ArrayCount(invalidFormatString));
