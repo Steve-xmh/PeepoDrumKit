@@ -88,7 +88,7 @@ target("PeepoDrumKit")
     if is_mode("debug") then
         add_defines("PEEPO_DEBUG=(1)", "PEEPO_RELEASE=(0)")
     else
-        add_defines("PEEPO_DEBUG=(1)", "PEEPO_RELEASE=(0)")
+        add_defines("PEEPO_DEBUG=(0)", "PEEPO_RELEASE=(1)")
     end
     add_includedirs("src")
     add_includedirs("src/core")
@@ -139,7 +139,7 @@ target("PeepoDrumKit")
         after_package(function (package)
             print(package:targetdir())
             print(package:packagedir())
-            destDir = package:packagedir() .. "/" .. package:plat() .. "/" .. package:arch()
+            destDir = package:packagedir() .. "/" .. package:plat() .. "/" .. package:arch() .. "/release/bin"
             print("Copying resource files into package directory: " .. destDir)
 
             os.cp("$(projectdir)/locales", destDir)
