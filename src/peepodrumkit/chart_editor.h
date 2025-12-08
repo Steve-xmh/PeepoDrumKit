@@ -61,6 +61,7 @@ namespace PeepoDrumKit
 		void SaveChart(ChartContext& context, std::string_view filePath = "");
 		b8 OpenChartSaveAsDialog(ChartContext& context);
 		b8 TrySaveChartOrOpenSaveAsDialog(ChartContext& context);
+		b8 OpenFumenExportDialog(const ChartContext& context);
 
 		void StartAsyncImportingChartFile(std::string_view absoluteChartFilePath);
 		void StartAsyncLoadingSongAudioFile(std::string_view absoluteAudioFilePath);

@@ -692,4 +692,222 @@ namespace PeepoDrumKit
 
 		return true;
 	}
+	
+	static Fumen::FormatV2::Difficulty ConvertDifficultyTypeToFumenDifficulty(DifficultyType in)
+	{
+		using namespace Fumen::FormatV2;
+		switch (in)
+		{
+		case DifficultyType::Easy:
+			return Difficulty::Easy;
+		case DifficultyType::Normal:
+			return Difficulty::Normal;
+		case DifficultyType::Hard:
+			return Difficulty::Hard;
+		case DifficultyType::Oni:
+			return Difficulty::Oni;
+		case DifficultyType::OniUra:
+			return Difficulty::Ura;
+		default:
+			return Difficulty::Oni;
+		}
+	}
+
+	b8 ConvertChartProjectToFumen(const ChartProject& in, Fumen::FormatV2::FumenChart& out, size_t targetCourseIndex)
+	{
+		using namespace Fumen::FormatV2;
+
+		out.Clear();
+
+		// Fumen 格式只支持单个难度,所以只取第一个 Course
+		if (in.Courses.empty())
+			return false;
+
+		const ChartCourse& inCourse = *in.Courses[targetCourseIndex];
+
+		// 初始化 Header
+		out.ChartHeader.ResetJudgeTiming(ConvertDifficultyTypeToFumenDifficulty(inCourse.Type));
+		out.ChartHeader.HasDivergentPaths = 0; // 简化实现,不支持分歧
+		out.ChartHeader.MaxHP = 10000;
+		
+		// 根据难度设置 ClearHP
+		switch (inCourse.Type)
+		{
+		case DifficultyType::Easy:
+			out.ChartHeader.ClearHP = Fumen::ClearHP_Easy;
+			break;
+		case DifficultyType::Normal:
+		case DifficultyType::Hard:
+			out.ChartHeader.ClearHP = Fumen::ClearHP_Normal_Hard;
+			break;
+		default:
+			out.ChartHeader.ClearHP = Fumen::ClearHP_Oni;
+			break;
+		}
+
+		// 设置 HP 相关参数
+		out.ChartHeader.HPPerGood = 10;
+		out.ChartHeader.HPPerOk = 5;
+		out.ChartHeader.HPPerBad = -20;
+		out.ChartHeader.MaxCombo = 65536;
+		out.ChartHeader.HPIncreaseRatio = 65536;
+		out.ChartHeader.HPIncreaseRatioMaster = 65536;
+
+		// 设置分歧点数 (虽然不使用分歧,但需要设置默认值)
+		out.ChartHeader.GoodDivergePoints = 20;
+		out.ChartHeader.OkDivergePoints = 10;
+		out.ChartHeader.BadDivergePoints = 0;
+		out.ChartHeader.DrumrollDivergePoints = 1;
+		out.ChartHeader.GoodDivergePointsBig = 20;
+		out.ChartHeader.OkDivergePointsBig = 10;
+		out.ChartHeader.DrumrollDivergePointsBig = 1;
+		out.ChartHeader.BalloonDivergePoints = 30;
+		out.ChartHeader.BellYamDivergePoints = 30;
+		out.ChartHeader.NumberOfDivergePoints = 20;
+
+		// 设置判定时间
+		out.ChartHeader.ResetJudgeTiming(static_cast<Difficulty>(inCourse.Type));
+
+		// 遍历小节
+		const Beat maxBeat = Max(FindCourseMaxUsedBeat(inCourse), inCourse.TempoMap.TimeToBeat(in.GetDurationOrDefault()));
+		std::vector<Measure> measures;
+
+		inCourse.TempoMap.ForEachBeatBar([&](const SortedTempoMap::ForEachBeatBarData& it)
+		{
+			if (it.Beat >= maxBeat)
+				return ControlFlow::Break;
+
+			if (it.IsBar)
+			{
+				Measure measure;
+				const Time measureTime = inCourse.TempoMap.BeatToTime(it.Beat);
+				
+				// 设置 BPM
+				const TempoChange* tempoChange = inCourse.TempoMap.Tempo.TryFindLastAtBeat(it.Beat);
+				measure.Data.BPM = (tempoChange != nullptr) ? tempoChange->Tempo.BPM : FallbackTempo.BPM;
+
+				// 设置 MeasureOffset (以毫秒为单位)
+				measure.Data.MeasureOffset = measureTime.ToMS_F32();
+
+				// 检查 GoGo Time
+				measure.Data.IsGogoTime = 0;
+				for (const GoGoRange& gogo : inCourse.GoGoRanges)
+				{
+					const Beat gogoEnd = gogo.BeatTime + gogo.BeatDuration;
+					if (it.Beat >= gogo.BeatTime && it.Beat < gogoEnd)
+					{
+						measure.Data.IsGogoTime = 1;
+						break;
+					}
+				}
+
+				// 检查小节线可见性
+				const BarLineChange* barLineChange = inCourse.BarLineChanges.TryFindLastAtBeat(it.Beat);
+				measure.Data.IsBarLineVisible = (barLineChange != nullptr) ? barLineChange->IsVisible : 1;
+
+				// 设置分歧点要求为 FFFFFFFF (不使用分歧)
+				measure.Data.InNormalToAdvancedDivergePointReq = 0xFFFFFFFF;
+				measure.Data.InNormalToMasterDivergePointReq = 0xFFFFFFFF;
+				measure.Data.InAdvancedToMasterDivergePointReq = 0xFFFFFFFF;
+				measure.Data.InAdvancedKeepAdvancedDivergePointReq = 0xFFFFFFFF;
+				measure.Data.InMasterToAdvancedDivergePointReq = 0xFFFFFFFF;
+				measure.Data.InMasterKeepMasterDivergePointReq = 0xFFFFFFFF;
+				measure.Data._Padding2 = 0;
+
+				// 获取该小节的滚动速度
+				const ScrollChange* scrollChange = inCourse.ScrollChanges.TryFindLastAtBeat(it.Beat);
+				measure.NormalNotesScrollSpeed = (scrollChange != nullptr) ? scrollChange->ScrollSpeed.GetRealPart() : 1.0f;
+
+				measures.push_back(measure);
+			}
+			return ControlFlow::Fallthrough;
+		});
+
+		if (measures.empty())
+		{
+			// 至少需要一个小节
+			Measure measure;
+			measure.Data.BPM = FallbackTempo.BPM;
+			measure.Data.MeasureOffset = 0.0f;
+			measure.Data.IsGogoTime = 0;
+			measure.Data.IsBarLineVisible = 1;
+			measure.Data.InNormalToAdvancedDivergePointReq = 0xFFFFFFFF;
+			measure.Data.InNormalToMasterDivergePointReq = 0xFFFFFFFF;
+			measure.Data.InAdvancedToMasterDivergePointReq = 0xFFFFFFFF;
+			measure.Data.InAdvancedKeepAdvancedDivergePointReq = 0xFFFFFFFF;
+			measure.Data.InMasterToAdvancedDivergePointReq = 0xFFFFFFFF;
+			measure.Data.InMasterKeepMasterDivergePointReq = 0xFFFFFFFF;
+			measure.NormalNotesScrollSpeed = 1.0f;
+			measures.push_back(measure);
+		}
+
+		// 将音符分配到对应的小节中
+		for (const Note& inNote : inCourse.Notes_Normal)
+		{
+			// 找到该音符所属的小节
+			Measure* targetMeasure = nullptr;
+			size_t measureIndex = 0;
+			for (size_t i = 0; i < measures.size(); ++i)
+			{
+				const Beat measureBeat = inCourse.TempoMap.TimeToBeat(Time::FromMS(measures[i].Data.MeasureOffset));
+				const Beat nextMeasureBeat = (i + 1 < measures.size()) 
+					? inCourse.TempoMap.TimeToBeat(Time::FromMS(measures[i + 1].Data.MeasureOffset))
+					: maxBeat;
+
+				if (inNote.BeatTime >= measureBeat && inNote.BeatTime < nextMeasureBeat)
+				{
+					targetMeasure = &measures[i];
+					measureIndex = i;
+					break;
+				}
+			}
+
+			if (targetMeasure == nullptr)
+				continue;
+
+			NoteData fumenNote;
+			fumenNote.Type = ConvertFumenNoteType(inNote.Type);
+			
+			if (fumenNote.Type == Fumen::FormatV2::NoteType_None)
+				continue;
+
+			// 计算音符在小节内的偏移 (毫秒)
+			const Time measureTime = Time::FromMS(targetMeasure->Data.MeasureOffset);
+			const Time noteTime = inCourse.TempoMap.BeatToTime(inNote.BeatTime) + inNote.TimeOffset;
+			fumenNote.NoteOffset = (noteTime - measureTime).ToMS_F32();
+
+			fumenNote._Padding1 = 0;
+			fumenNote.InitialScoreValue = 0;
+			fumenNote.ScoreDifferenceTimes4 = 0;
+			fumenNote.BalloonHitCount_Old = 0;
+			fumenNote.Length = 0.0f;
+
+			// 处理气球和连打音符
+			if (IsBalloonNote(inNote.Type))
+			{
+				fumenNote.InitialScoreValue = static_cast<u16>(inNote.BalloonPopCount);
+				if (inNote.BeatDuration > Beat::Zero())
+				{
+					const Time noteDuration = inCourse.TempoMap.BeatToTime(inNote.BeatTime + inNote.BeatDuration) - inCourse.TempoMap.BeatToTime(inNote.BeatTime);
+					fumenNote.Length = noteDuration.ToMS_F32();
+				}
+			}
+			else if (IsDrumrollNote(inNote.Type))
+			{
+				if (inNote.BeatDuration > Beat::Zero())
+				{
+					const Time noteDuration = inCourse.TempoMap.BeatToTime(inNote.BeatTime + inNote.BeatDuration) - inCourse.TempoMap.BeatToTime(inNote.BeatTime);
+					fumenNote.Length = noteDuration.ToMS_F32();
+				}
+			}
+
+			targetMeasure->NormalNotes.push_back(fumenNote);
+		}
+
+		// 设置 NumberOfMeasures 并添加到 out
+		out.ChartHeader.NumberOfMeasures = static_cast<u32>(measures.size());
+		out.Measures = std::move(measures);
+
+		return true;
+	}
 }

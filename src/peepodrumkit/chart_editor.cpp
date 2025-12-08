@@ -486,6 +486,9 @@ namespace PeepoDrumKit
 				Gui::MenuItem(UI_Str("ACT_TEST_SHOW_AUDIO_TEST"), "(Debug)", &PersistentApp.LastSession.ShowWindow_AudioTest);
 				Gui::MenuItem(UI_Str("ACT_TEST_SHOW_TJA_IMPORT_TEST"), "(Debug)", &PersistentApp.LastSession.ShowWindow_TJAImportTest);
 				Gui::MenuItem(UI_Str("ACT_TEST_SHOW_TJA_EXPORT_VIEW"), "(Debug)", &PersistentApp.LastSession.ShowWindow_TJAExportTest);
+				if (Gui::MenuItem("Fumen Export Test", "(Debug)")) {
+					OpenFumenExportDialog(context);
+				}
 #if !defined(IMGUI_DISABLE_DEMO_WINDOWS)
 				Gui::Separator();
 				Gui::MenuItem(UI_Str("ACT_TEST_SHOW_IMGUI_DEMO"), " ", &PersistentApp.LastSession.ShowWindow_ImGuiDemo);
@@ -1458,6 +1461,30 @@ namespace PeepoDrumKit
 		{
 			if (result == Shell::FileDialogResult::OK)
 				SaveChart(context, fileDialog.OutFilePath);
+		};
+
+		return fileDialog.OpenSave();
+	}
+	
+	b8 ChartEditor::OpenFumenExportDialog(const ChartContext& context)
+	{
+		fileDialog.InTitle = "Export Chart to Fumen Format";
+		fileDialog.InFileName = Path::GetFileName(context.ChartFilePath, false);
+		fileDialog.InDefaultExtension = Fumen::Extension;
+		fileDialog.InFilters = { { Fumen::FilterName, Fumen::FilterSpec }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
+		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
+		fileDialog.onCallback = [&](Shell::FileDialogResult result)
+		{
+			if (result == Shell::FileDialogResult::OK)
+			{
+				std::cout << "Exporting chart to Fumen file: " << fileDialog.OutFilePath << std::endl;
+				Fumen::FormatV2::FumenChart fumenChart = {};
+				PeepoDrumKit::ConvertChartProjectToFumen(context.Chart, fumenChart);
+				std::cout << "Converted fumen with measures: " << fumenChart.GetMeasureCount() << std::endl;
+				Fumen::FormatV2::FumenChartWriter writer = {};
+				std::vector<u8> fumenFileData = writer.WriteToMemory(fumenChart);
+				File::WriteAllBytes(fileDialog.OutFilePath, fumenFileData.data(), fumenFileData.size());
+			}
 		};
 
 		return fileDialog.OpenSave();

@@ -22,7 +22,12 @@ elseif is_os("linux") then
     libsoundio_config.jack = true
     libsoundio_config.pulseaudio = true
 end
-    
+
+add_requires(
+    "plusaes",
+    {
+        debug = is_mode("debug"),
+    })
 add_requires(
     "libsoundio",
     {
@@ -82,13 +87,13 @@ target("PeepoDrumKit")
     if is_mode("debug") then
         add_defines("PEEPO_DEBUG=(1)", "PEEPO_RELEASE=(0)")
     else
-        add_defines("PEEPO_DEBUG=(0)", "PEEPO_RELEASE=(1)")
+        add_defines("PEEPO_DEBUG=(1)", "PEEPO_RELEASE=(0)")
     end
     add_includedirs("src")
     add_includedirs("src/core")
     add_includedirs("src/peepodrumkit")
     add_includedirs("libs")
-    add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3", "icu4c")
+    add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3", "icu4c", "plusaes")
     if is_os("windows") then
         -- add_files("src/imgui/*.hlsl")
         add_files("src_res/Resource.rc")
