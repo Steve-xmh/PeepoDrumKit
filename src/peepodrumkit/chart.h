@@ -482,7 +482,7 @@ namespace PeepoDrumKit
 	void DebugCompareCharts(const ChartProject& chartA, const ChartProject& chartB, DebugCompareChartsOnMessageFunc onMessageFunc, void* userData = nullptr);
 
 	Beat FindCourseMaxUsedBeat(const ChartCourse& course);
-	b8 CreateChartProjectFromFumen(const Fumen::FormatV2::FumenChart& inFumen, ChartProject& out);
+	b8 CreateChartProjectFromFumen(const Fumen::FormatV2::FumenChart& inFumen, ChartProject& out, std::unique_ptr<ChartCourse>& course);
 	b8 CreateChartProjectFromTJA(const TJA::ParsedTJA& inTJA, ChartProject& out);
 	b8 ConvertChartProjectToTJA(const ChartProject& in, TJA::ParsedTJA& out, b8 includePeepoDrumKitComment = true);
 	b8 ConvertChartProjectToFumen(const ChartProject& in, Fumen::FormatV2::FumenChart& out, size_t targetCourseIndex = 0);

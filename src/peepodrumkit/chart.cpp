@@ -158,14 +158,14 @@ namespace PeepoDrumKit
 		}
 	}
 
-	static void AddBestSignatureDenominatorMatchesTime(ChartCourse& course, Time targetTime)
+	static void AddBestSignatureDenominatorMatchesTime(std::unique_ptr<ChartCourse>& course, Time targetTime)
 	{
-		assert(!course.TempoMap.Signature.Sorted.empty());
-		assert(!course.TempoMap.Tempo.Sorted.empty());
+		assert(!course->TempoMap.Signature.Sorted.empty());
+		assert(!course->TempoMap.Tempo.Sorted.empty());
 
-		auto &lastBPMChange = course.TempoMap.Tempo.Sorted.back();
-		auto &lastSignatureChange = course.TempoMap.Signature.Sorted.back();
-		auto timeDuration = (course.TempoMap.BeatToTime(lastSignatureChange.Beat) - targetTime).ToMS_F32();
+		auto &lastBPMChange = course->TempoMap.Tempo.Sorted.back();
+		auto &lastSignatureChange = course->TempoMap.Signature.Sorted.back();
+		auto timeDuration = (course->TempoMap.BeatToTime(lastSignatureChange.Beat) - targetTime).ToMS_F32();
 		struct DenominatorMatch {
 			int Denominator;
 			f32 TimeDelta;
@@ -193,7 +193,7 @@ namespace PeepoDrumKit
 			lastSignatureChange.Signature.Denominator = bestDenominator->Denominator;
 			lastSignatureChange.Signature.Simplify();
 			auto hideBarBeat = lastSignatureChange.Beat + lastSignatureChange.Signature.GetDurationPerBeat();
-			course.BarLineChanges.Sorted.emplace_back(BarLineChange { hideBarBeat, false });
+			course->BarLineChanges.Sorted.emplace_back(BarLineChange { hideBarBeat, false });
 		}
 	}
 
@@ -212,10 +212,8 @@ namespace PeepoDrumKit
 		return maxBeat;
 	}
 	
-	b8 CreateChartProjectFromFumen(const Fumen::FormatV2::FumenChart& inFumen, ChartProject& out)
+	b8 CreateChartProjectFromFumen(const Fumen::FormatV2::FumenChart& inFumen, ChartProject& out, std::unique_ptr<ChartCourse>& course)
 	{
-		out.ChartDuration = Time::Zero();
-		
 		b8 isBarlineVisible = inFumen.Measures.empty() ? true : static_cast<b8>(inFumen.Measures[0].Data.IsBarLineVisible);
 		Tempo currentBpm = inFumen.Measures.empty() ? FallbackTempo : Tempo(inFumen.Measures[0].Data.BPM);
 		f32 currentScrollSpeed = inFumen.Measures.empty() ? 1.0f : inFumen.Measures[0].NormalNotesScrollSpeed;
@@ -223,13 +221,21 @@ namespace PeepoDrumKit
 		f32 bpmChangeOffsetAccum = 0.0f;
 		auto gogoTimeStartMeasure = std::optional<Time>();
 
-		out.Courses.clear();
-		ChartCourse& course = *out.Courses.emplace_back(std::make_unique<ChartCourse>());
+		course->TempoMap.Tempo.Sorted.emplace_back(TempoChange { Beat::Zero(), currentBpm });
+		course->TempoMap.Signature.Sorted.emplace_back(TimeSignatureChange { Beat::Zero(), TimeSignature(4, 4) });
+		course->TempoMap.RebuildAccelerationStructure();
+		course->BarLineChanges.Sorted.emplace_back(BarLineChange { Beat::Zero(), isBarlineVisible });
 
-		course.TempoMap.Tempo.Sorted.emplace_back(TempoChange { Beat::Zero(), currentBpm });
-		course.TempoMap.Signature.Sorted.emplace_back(TimeSignatureChange { Beat::Zero(), TimeSignature(4, 4) });
-		course.TempoMap.RebuildAccelerationStructure();
-		course.BarLineChanges.Sorted.emplace_back(BarLineChange { Beat::Zero(), isBarlineVisible });
+		auto assumedDuration = Time::Zero();
+		for (const auto& measure : inFumen.Measures)
+		{
+			assumedDuration = Max(assumedDuration, Time::FromMS(measure.Data.MeasureOffset - firstMeasureOffset + bpmChangeOffsetAccum));
+			for (const auto& note : measure.NormalNotes)
+			{
+				assumedDuration = Max(assumedDuration, Time::FromMS(measure.Data.MeasureOffset - firstMeasureOffset + bpmChangeOffsetAccum + note.NoteOffset + note.Length));
+			}
+		}
+		out.ChartDuration = Max(out.ChartDuration, assumedDuration);
 
 		for (auto it = inFumen.Measures.begin(); it != inFumen.Measures.end(); ++it)
 		{
@@ -243,47 +249,47 @@ namespace PeepoDrumKit
 				currentBpm = Tempo(measure.Data.BPM);
 				pos = Time::FromMS(measure.Data.MeasureOffset - firstMeasureOffset + bpmChangeOffsetAccum);
 
-				auto &lastSignature = course.TempoMap.Signature.Sorted.back();
-				auto &lastTempo = course.TempoMap.Tempo.Sorted.back();
-				auto measureDistance = pos - course.TempoMap.BeatToTime(lastSignature.Beat);
+				auto &lastSignature = course->TempoMap.Signature.Sorted.back();
+				auto &lastTempo = course->TempoMap.Tempo.Sorted.back();
+				auto measureDistance = pos - course->TempoMap.BeatToTime(lastSignature.Beat);
 
 				AddBestSignatureDenominatorMatchesTime(course, pos);
 
-				auto posBeat = course.TempoMap.TimeToBeat(pos);
-				course.TempoMap.Tempo.Sorted.emplace_back(TempoChange { posBeat, currentBpm });
-				course.TempoMap.Signature.Sorted.emplace_back(TimeSignatureChange { posBeat, TimeSignature(4, 4), });
-				course.TempoMap.RebuildAccelerationStructure();
+				auto posBeat = course->TempoMap.TimeToBeat(pos);
+				course->TempoMap.Tempo.Sorted.emplace_back(TempoChange { posBeat, currentBpm });
+				course->TempoMap.Signature.Sorted.emplace_back(TimeSignatureChange { posBeat, TimeSignature(4, 4), });
+				course->TempoMap.RebuildAccelerationStructure();
 			} else if (std::distance(inFumen.Measures.begin(), it) > 0)
 			{
-				auto &lastSignature = course.TempoMap.Signature.Sorted.back();
-				auto &lastTempo = course.TempoMap.Tempo.Sorted.back();
-				auto measureDistance = pos - course.TempoMap.BeatToTime(lastSignature.Beat);
+				auto &lastSignature = course->TempoMap.Signature.Sorted.back();
+				auto &lastTempo = course->TempoMap.Tempo.Sorted.back();
+				auto measureDistance = pos - course->TempoMap.BeatToTime(lastSignature.Beat);
 
 				AddBestSignatureDenominatorMatchesTime(course, pos);
 
-				course.TempoMap.Signature.Sorted.emplace_back(TimeSignatureChange {
-					course.TempoMap.TimeToBeat(pos),
+				course->TempoMap.Signature.Sorted.emplace_back(TimeSignatureChange {
+					course->TempoMap.TimeToBeat(pos),
 					TimeSignature(4, 4),
 				});
-				course.TempoMap.RebuildAccelerationStructure();
+				course->TempoMap.RebuildAccelerationStructure();
 			}
 
 			if (!ApproxmiatelySame(measure.NormalNotesScrollSpeed, currentScrollSpeed))
 			{
 				currentScrollSpeed = measure.NormalNotesScrollSpeed;
-				course.ScrollChanges.Sorted.emplace_back(ScrollChange { course.TempoMap.TimeToBeat(pos), Complex(currentScrollSpeed, 0) });
+				course->ScrollChanges.Sorted.emplace_back(ScrollChange { course->TempoMap.TimeToBeat(pos), Complex(currentScrollSpeed, 0) });
 			}
 
-			course.BarLineChanges.Sorted.emplace_back(BarLineChange { course.TempoMap.TimeToBeat(pos), static_cast<b8>(measure.Data.IsBarLineVisible) });
+			course->BarLineChanges.Sorted.emplace_back(BarLineChange { course->TempoMap.TimeToBeat(pos), static_cast<b8>(measure.Data.IsBarLineVisible) });
 
 			if (gogoTimeStartMeasure.has_value())
 			{
 				if (measure.Data.IsGogoTime == 0)
 				{
 					auto startPos = *gogoTimeStartMeasure;
-					course.GoGoRanges.Sorted.emplace_back(GoGoRange {
-						.BeatTime = course.TempoMap.TimeToBeat(startPos),
-						.BeatDuration = course.TempoMap.TimeToBeat(pos - startPos),
+					course->GoGoRanges.Sorted.emplace_back(GoGoRange {
+						.BeatTime = course->TempoMap.TimeToBeat(startPos),
+						.BeatDuration = course->TempoMap.TimeToBeat(pos - startPos),
 					});
 					gogoTimeStartMeasure.reset();
 				}
@@ -300,9 +306,9 @@ namespace PeepoDrumKit
 				if (noteType == NoteType::Count)
 					continue;
 
-				Note& outNote = course.Notes_Normal.Sorted.emplace_back();
+				Note& outNote = course->Notes_Normal.Sorted.emplace_back();
 				auto beginTime = pos + Time::FromMS(note.NoteOffset);
-				outNote.BeatTime = course.TempoMap.TimeToBeat(beginTime);
+				outNote.BeatTime = course->TempoMap.TimeToBeat(beginTime);
 				outNote.Type = noteType;
 				outNote.TimeOffset = Time::Zero();
 
@@ -312,20 +318,20 @@ namespace PeepoDrumKit
 						outNote.BalloonPopCount = static_cast<i16>(note.BalloonHitCount_Old);
 					else
 						outNote.BalloonPopCount = static_cast<i16>(note.InitialScoreValue);
-					outNote.BeatDuration = course.TempoMap.TimeToBeat(beginTime + Time::FromMS(note.Length)) - outNote.GetStart();
+					outNote.BeatDuration = course->TempoMap.TimeToBeat(beginTime + Time::FromMS(note.Length)) - outNote.GetStart();
 				}
 				else if (note.isRendaNote())
 				{
-					outNote.BeatDuration = course.TempoMap.TimeToBeat(beginTime + Time::FromMS(note.Length)) - outNote.GetStart();
+					outNote.BeatDuration = course->TempoMap.TimeToBeat(beginTime + Time::FromMS(note.Length)) - outNote.GetStart();
 				}
 			}
 		}
 
 		if (gogoTimeStartMeasure.has_value())
 		{
-			auto startPos = course.TempoMap.TimeToBeat(*gogoTimeStartMeasure);
-			auto endPos = course.TempoMap.TimeToBeat(out.GetDurationOrDefault());
-			course.GoGoRanges.Sorted.emplace_back(GoGoRange {
+			auto startPos = course->TempoMap.TimeToBeat(*gogoTimeStartMeasure);
+			auto endPos = course->TempoMap.TimeToBeat(out.GetDurationOrDefault());
+			course->GoGoRanges.Sorted.emplace_back(GoGoRange {
 				.BeatTime = startPos,
 				.BeatDuration = endPos - startPos,
 			});
@@ -333,9 +339,9 @@ namespace PeepoDrumKit
 
 		// Simplify barline visible commands
 		std::vector<BarLineChange> simplifiedBarlineChangeEvents;
-		b8 currentlyVisible = course.BarLineChanges.Sorted.empty() ? true : course.BarLineChanges.Sorted.front().IsVisible;
+		b8 currentlyVisible = course->BarLineChanges.Sorted.empty() ? true : course->BarLineChanges.Sorted.front().IsVisible;
 		simplifiedBarlineChangeEvents.emplace_back(BarLineChange { Beat::Zero(), currentlyVisible });
-		for (auto it = course.BarLineChanges.Sorted.begin(); it != course.BarLineChanges.Sorted.end(); ++it)
+		for (auto it = course->BarLineChanges.Sorted.begin(); it != course->BarLineChanges.Sorted.end(); ++it)
 		{
 			if (currentlyVisible != it->IsVisible)
 			{
@@ -343,13 +349,13 @@ namespace PeepoDrumKit
 				simplifiedBarlineChangeEvents.emplace_back(*it);
 			}
 		}
-		course.BarLineChanges.Sorted = simplifiedBarlineChangeEvents;
+		course->BarLineChanges.Sorted = simplifiedBarlineChangeEvents;
 
 		// Simplify time signature change events
 		std::vector<TimeSignatureChange> simplifiedSignatureChangeEvents;
-		TimeSignature currentSignature = course.TempoMap.Signature.Sorted.empty() ? TimeSignature(4, 4) : course.TempoMap.Signature.Sorted.front().Signature;
+		TimeSignature currentSignature = course->TempoMap.Signature.Sorted.empty() ? TimeSignature(4, 4) : course->TempoMap.Signature.Sorted.front().Signature;
 		simplifiedSignatureChangeEvents.emplace_back(TimeSignatureChange { Beat::Zero(), currentSignature });
-		for (auto it = course.TempoMap.Signature.Sorted.begin(); it != course.TempoMap.Signature.Sorted.end(); ++it)
+		for (auto it = course->TempoMap.Signature.Sorted.begin(); it != course->TempoMap.Signature.Sorted.end(); ++it)
 		{
 			if (currentSignature != it->Signature)
 			{
@@ -357,13 +363,13 @@ namespace PeepoDrumKit
 				simplifiedSignatureChangeEvents.emplace_back(*it);
 			}
 		}
-		course.TempoMap.Signature.Sorted = simplifiedSignatureChangeEvents;
+		course->TempoMap.Signature.Sorted = simplifiedSignatureChangeEvents;
 
 		// Simplify tempo change events
 		std::vector<TempoChange> simplifiedTempoChangeEvents;
-		Tempo currentTempo = course.TempoMap.Tempo.Sorted.empty() ? FallbackTempo : course.TempoMap.Tempo.Sorted.front().Tempo;
+		Tempo currentTempo = course->TempoMap.Tempo.Sorted.empty() ? FallbackTempo : course->TempoMap.Tempo.Sorted.front().Tempo;
 		simplifiedTempoChangeEvents.emplace_back(TempoChange { Beat::Zero(), currentTempo });
-		for (auto it = course.TempoMap.Tempo.Sorted.begin(); it != course.TempoMap.Tempo.Sorted.end(); ++it)
+		for (auto it = course->TempoMap.Tempo.Sorted.begin(); it != course->TempoMap.Tempo.Sorted.end(); ++it)
 		{
 			if (!ApproxmiatelySame(currentTempo.BPM, it->Tempo.BPM))
 			{

@@ -46,6 +46,7 @@ add_requires(
 add_requires(
     "stb 2025.03.14",
     "thorvg v1.0-pre10",
+    "gzip-hpp",
     "libsoundio",
     "libsdl3",
     "icu4c"
@@ -93,7 +94,7 @@ target("PeepoDrumKit")
     add_includedirs("src/core")
     add_includedirs("src/peepodrumkit")
     add_includedirs("libs")
-    add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3", "icu4c", "plusaes")
+    add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3", "icu4c", "plusaes", "gzip-hpp")
     if is_os("windows") then
         -- add_files("src/imgui/*.hlsl")
         add_files("src_res/Resource.rc")
@@ -127,6 +128,19 @@ target("PeepoDrumKit")
     else
         after_build(function (target)
             destDir = target:targetdir()
+
+            os.cp("$(projectdir)/locales", destDir)
+            os.cp("$(projectdir)/assets", destDir)
+
+            if os.exists("$(projectdir)/assets_override") then
+                os.cp("$(projectdir)/assets_override/*", destDir .. "/assets")
+            end
+        end)
+        after_package(function (package)
+            print(package:targetdir())
+            print(package:packagedir())
+            destDir = package:packagedir() .. "/" .. package:plat() .. "/" .. package:arch()
+            print("Copying resource files into package directory: " .. destDir)
 
             os.cp("$(projectdir)/locales", destDir)
             os.cp("$(projectdir)/assets", destDir)

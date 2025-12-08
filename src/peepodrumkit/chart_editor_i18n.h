@@ -71,9 +71,16 @@ X("ACT_FILE_OPEN",									"Open...") \
 X("ACT_FILE_CLEAR_ITEMS",							"Clear Items") \
 X("ACT_FILE_OPEN_CHART_DIRECTORY",					"Open Chart Directory...") \
 X("ACT_FILE_SAVE_AS",								"Save As...") \
-X("ACT_FILE_IMPORT_FROM",							"Import From...") \
-X("ACT_FILE_IMPORT_FROM_SINGLE_FUMEN_CHART",		"Single Fumen Binary") \
-X("ACT_FILE_IMPORT_FROM_MULTIPLE_FUMEN_CHART",		"Multiple Fumen Directory") \
+X("ACT_FILE_IMPORT_FROM",											"Import From...") \
+X("ACT_FILE_IMPORT_FROM_SINGLE_FUMEN_CHART_RAW",					"Single Fumen Binary") \
+X("ACT_FILE_IMPORT_FROM_MULTIPLE_FUMEN_CHART_RAW",					"Multiple Fumen Directory") \
+X("ACT_FILE_IMPORT_FROM_SINGLE_FUMEN_CHART_NIJIIRO_ENCRYPTED",		"Single Fumen (Nijiiro Encrypted)") \
+X("ACT_FILE_IMPORT_FROM_MULTIPLE_FUMEN_CHART_NIJIIRO_ENCRYPTED",	"Multiple Fumen (Nijiiro Encrypted)") \
+X("ACT_FILE_EXPORT_TO",												"Export To...") \
+X("ACT_FILE_EXPORT_TO_SINGLE_FUMEN_CHART_RAW",						"Single Fumen Binary") \
+X("ACT_FILE_EXPORT_TO_MULTIPLE_FUMEN_CHART_RAW",					"Multiple Fumen Directory") \
+X("ACT_FILE_EXPORT_TO_SINGLE_FUMEN_CHART_NIJIIRO_ENCRYPTED",		"Single Fumen (Nijiiro Encrypted)") \
+X("ACT_FILE_EXPORT_TO_MULTIPLE_FUMEN_CHART_NIJIIRO_ENCRYPTED",		"Multiple Fumen (Nijiiro Encrypted)") \
 /* selection menu */ \
 X("ACT_SELECTION_REFINE",							"Refine Selection") \
 X("ACT_SELECTION_SELECT_ALL",						"Select All") \

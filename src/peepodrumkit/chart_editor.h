@@ -64,6 +64,10 @@ namespace PeepoDrumKit
 		b8 OpenFumenExportDialog(const ChartContext& context);
 
 		void StartAsyncImportingChartFile(std::string_view absoluteChartFilePath);
+		void StartAsyncImportingFumenFile(std::string_view absoluteChartFilePath, bool encrypted = false);
+		void StartAsyncImportingFumenChartDirectory(std::string_view absoluteChartFilePath, bool encrypted = false);
+		void StartAsyncExportFumenFile(std::string_view absoluteChartFilePath, bool encrypted = false);
+		void StartAsyncExportFumenChartDirectory(std::string_view absoluteChartFilePath, bool encrypted = false);
 		void StartAsyncLoadingSongAudioFile(std::string_view absoluteAudioFilePath);
 		void StartAsyncLoadingSongJacketFile(std::string_view absoluteJacketFilePath);
 		void SetAndStartLoadingChartSongFileName(std::string_view relativeOrAbsoluteAudioFilePath, Undo::UndoHistory& undo);
@@ -72,6 +76,10 @@ namespace PeepoDrumKit
 		b8 OpenLoadChartFileDialog(ChartContext& context);
 		b8 OpenLoadAudioFileDialog(Undo::UndoHistory& undo);
 		b8 OpenLoadJacketFileDialog(Undo::UndoHistory& undo);
+		b8 OpenLoadFumenFileDialog(bool encrypted);
+		b8 OpenLoadFumenChartDirectoryDialog(bool encrypted);
+		b8 OpenSaveFumenFileDialog(bool encrypted);
+		b8 OpenSaveFumenChartDirectoryDialog(bool encrypted);
 
 		void CheckOpenSaveConfirmationPopupThenCall(std::function<void()> onSuccess);
 		void InternalUpdateAsyncLoading();

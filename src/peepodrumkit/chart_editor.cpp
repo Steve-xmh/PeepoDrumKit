@@ -4,6 +4,7 @@
 #include "chart_editor_widgets.h"
 #include "audio/audio_file_formats.h"
 #include "chart_editor_i18n.h"
+#include "core/core_crypto.h"
 #include <cstddef>
 
 namespace PeepoDrumKit
@@ -143,13 +144,41 @@ namespace PeepoDrumKit
 				Gui::Separator();
 				if (Gui::BeginMenu(UI_Str("ACT_FILE_IMPORT_FROM")))
 				{
-					if (Gui::MenuItem(UI_Str("ACT_FILE_IMPORT_FROM_SINGLE_FUMEN_CHART")))
+					if (Gui::MenuItem(UI_Str("ACT_FILE_IMPORT_FROM_SINGLE_FUMEN_CHART_RAW")))
 					{
-						OpenLoadChartFileDialog(context);
+						OpenLoadFumenFileDialog(false);
 					}
-					if (Gui::MenuItem(UI_Str("ACT_FILE_IMPORT_FROM_MULTIPLE_FUMEN_CHART")))
+					if (Gui::MenuItem(UI_Str("ACT_FILE_IMPORT_FROM_MULTIPLE_FUMEN_CHART_RAW")))
 					{
-						OpenLoadChartFileDialog(context);
+						OpenLoadFumenChartDirectoryDialog(false);
+					}
+					if (Gui::MenuItem(UI_Str("ACT_FILE_IMPORT_FROM_SINGLE_FUMEN_CHART_NIJIIRO_ENCRYPTED")))
+					{
+						OpenLoadFumenFileDialog(true);
+					}
+					if (Gui::MenuItem(UI_Str("ACT_FILE_IMPORT_FROM_MULTIPLE_FUMEN_CHART_NIJIIRO_ENCRYPTED")))
+					{
+						OpenLoadFumenChartDirectoryDialog(true);
+					}
+					Gui::EndMenu();
+				}
+				if (Gui::BeginMenu(UI_Str("ACT_FILE_EXPORT_TO")))
+				{
+					if (Gui::MenuItem(UI_Str("ACT_FILE_EXPORT_TO_SINGLE_FUMEN_CHART_RAW")))
+					{
+						OpenSaveFumenFileDialog(false);
+					}
+					if (Gui::MenuItem(UI_Str("ACT_FILE_EXPORT_TO_MULTIPLE_FUMEN_CHART_RAW")))
+					{
+						OpenSaveFumenChartDirectoryDialog(false);
+					}
+					if (Gui::MenuItem(UI_Str("ACT_FILE_EXPORT_TO_SINGLE_FUMEN_CHART_NIJIIRO_ENCRYPTED")))
+					{
+						OpenSaveFumenFileDialog(true);
+					}
+					if (Gui::MenuItem(UI_Str("ACT_FILE_EXPORT_TO_MULTIPLE_FUMEN_CHART_NIJIIRO_ENCRYPTED")))
+					{
+						OpenSaveFumenChartDirectoryDialog(true);
 					}
 					Gui::EndMenu();
 				}
@@ -1540,7 +1569,9 @@ namespace PeepoDrumKit
 				Fumen::FormatV2::FumenChartReader reader = {};
 				Fumen::FormatV2::FumenChart outChart = {};
 				reader.ReadFromMemory(fileContent.get(), fileSize, outChart);
-				CreateChartProjectFromFumen(outChart, result.Chart);
+				auto newCourse = std::make_unique<ChartCourse>();
+				CreateChartProjectFromFumen(outChart, result.Chart, newCourse);
+				result.Chart.Courses.push_back(std::move(newCourse));
 			}
 			else
 			{
@@ -1550,7 +1581,275 @@ namespace PeepoDrumKit
 			return result;
 		});
 	}
-	
+
+	void ChartEditor::StartAsyncImportingFumenFile(std::string_view absoluteChartFilePath, bool encrypted)
+	{
+		if (importChartFuture.valid())
+			importChartFuture.get();
+
+		importChartFuture = std::async(std::launch::async, [tempPathCopy = std::string(absoluteChartFilePath), encrypted]() mutable->AsyncImportChartResult
+		{
+			AsyncImportChartResult result {};
+			result.ChartFilePath = std::move(tempPathCopy);
+
+			auto[fileContent, fileSize] = File::ReadAllBytes(result.ChartFilePath);
+			if (fileContent == nullptr || fileSize == 0)
+			{
+				printf("Failed to read file '%.*s'\n", FmtStrViewArgs(result.ChartFilePath));
+				return result;
+			}
+
+			std::vector<u8> fileData = {};
+
+			if (encrypted)
+			{
+				fileData = EncryptedFumenV2::Decrypt(fileContent.get(), fileSize);
+			}
+			else
+			{
+				fileData = std::vector<u8>(fileContent.get(), fileContent.get() + fileSize);
+			}
+
+			Fumen::FormatV2::FumenChartReader reader = {};
+			Fumen::FormatV2::FumenChart outChart = {};
+			reader.ReadFromMemory(fileData.data(), fileData.size(), outChart);
+			auto newCourse = std::make_unique<ChartCourse>();
+			CreateChartProjectFromFumen(outChart, result.Chart, newCourse);
+			result.Chart.Courses.push_back(std::move(newCourse));
+
+			return result;
+		});
+	}
+
+	void ChartEditor::StartAsyncImportingFumenChartDirectory(std::string_view absoluteChartFilePath, bool encrypted)
+	{
+		if (importChartFuture.valid())
+			importChartFuture.get();
+
+		importChartFuture = std::async(std::launch::async, [tempPathCopy = std::string(absoluteChartFilePath), encrypted]() mutable->AsyncImportChartResult
+		{
+			AsyncImportChartResult result {};
+			result.ChartFilePath = std::move(tempPathCopy);
+			std::cout << "Importing Fumen chart directory: " <<  result.ChartFilePath << std::endl;
+			auto chartDirectoryPath = std::filesystem::path(result.ChartFilePath);
+			if (!std::filesystem::is_directory(result.ChartFilePath)) return result;
+			auto dirName = chartDirectoryPath.filename().string();
+			std::filesystem::directory_iterator dirIter(chartDirectoryPath);
+
+			ChartProject importedChart = {};
+
+			for (const auto& entry : dirIter)
+			{
+				if (!entry.is_regular_file()) continue;
+				auto filePath = entry.path();
+				std::cout << "Checking file: " << filePath.string() << std::endl;
+				if (!Path::HasExtension(filePath.string(), ".bin")) continue;
+				auto fileName = filePath.filename().string();
+				auto targetDifficulty = Fumen::FormatV2::Difficulty::Easy;
+				std::cout << "Importing Fumen file: " << filePath.string() << std::endl;
+
+				if (fileName.ends_with("_e.bin"))
+					targetDifficulty = Fumen::FormatV2::Difficulty::Easy;
+				else if (fileName.ends_with("_n.bin"))
+					targetDifficulty = Fumen::FormatV2::Difficulty::Normal;
+				else if (fileName.ends_with("_h.bin"))
+					targetDifficulty = Fumen::FormatV2::Difficulty::Hard;
+				else if (fileName.ends_with("_m.bin"))
+					targetDifficulty = Fumen::FormatV2::Difficulty::Oni;
+				else if (fileName.ends_with("_x.bin"))
+					targetDifficulty = Fumen::FormatV2::Difficulty::Ura;
+				else
+					continue; // Unknown difficulty suffix
+
+				auto[fileContent, fileSize] = File::ReadAllBytes(filePath.string());
+				if (fileContent == nullptr || fileSize == 0)
+				{
+					printf("Failed to read file '%s'\n", filePath.string().c_str());
+					continue;
+				}
+
+				std::vector<u8> fileData = {};
+
+				if (encrypted)
+				{
+					fileData = EncryptedFumenV2::Decrypt(fileContent.get(), fileSize);
+				}
+				else
+				{
+					fileData = std::vector<u8>(fileContent.get(), fileContent.get() + fileSize);
+				}
+
+				Fumen::FormatV2::FumenChartReader reader = {};
+				Fumen::FormatV2::FumenChart outChart = {};
+				reader.ReadFromMemory(fileData.data(), fileData.size(), outChart);
+
+				auto newCourse = std::make_unique<ChartCourse>();
+
+				switch (targetDifficulty)
+				{
+				case Fumen::FormatV2::Difficulty::Easy: newCourse->Type = DifficultyType::Easy; break;
+				case Fumen::FormatV2::Difficulty::Normal: newCourse->Type = DifficultyType::Normal; break;
+				case Fumen::FormatV2::Difficulty::Hard: newCourse->Type = DifficultyType::Hard; break;
+				case Fumen::FormatV2::Difficulty::Oni: newCourse->Type = DifficultyType::Oni; break;
+				case Fumen::FormatV2::Difficulty::Ura: newCourse->Type = DifficultyType::OniUra; break;
+				default: continue;
+				}
+
+				CreateChartProjectFromFumen(outChart, importedChart, newCourse);
+				importedChart.Courses.push_back(std::move(newCourse));
+			}
+
+			result.Chart = std::move(importedChart);
+
+			return result;
+		});
+	}
+
+	void ChartEditor::StartAsyncExportFumenFile(std::string_view absoluteChartFilePath, bool encrypted)
+	{
+		if (importChartFuture.valid())
+			importChartFuture.get();
+
+		importChartFuture = std::async(std::launch::async, [this, tempPathCopy = std::string(absoluteChartFilePath), encrypted]() mutable->AsyncImportChartResult
+		{
+			AsyncImportChartResult result {};
+			result.ChartFilePath = std::move(tempPathCopy);
+
+			try
+			{
+				// 找到当前选中的难度索引
+				size_t selectedCourseIndex = 0;
+				for (size_t i = 0; i < context.Chart.Courses.size(); ++i)
+				{
+					if (context.Chart.Courses[i].get() == context.ChartSelectedCourse)
+					{
+						selectedCourseIndex = i;
+						break;
+					}
+				}
+
+				// 将当前图表转换为 Fumen 格式
+				Fumen::FormatV2::FumenChart fumenChart = {};
+				if (!ConvertChartProjectToFumen(context.Chart, fumenChart, selectedCourseIndex))
+				{
+					printf("Failed to convert chart to Fumen format\n");
+					return result;
+				}
+
+				// 将 Fumen 图表写入内存
+				Fumen::FormatV2::FumenChartWriter writer = {};
+				std::vector<u8> fileData = writer.WriteToMemory(fumenChart);
+
+				// 如果需要加密
+				if (encrypted)
+				{
+					fileData = EncryptedFumenV2::Encrypt(fileData.data(), fileData.size());
+				}
+
+				// 写入文件
+				File::WriteAllBytes(result.ChartFilePath, fileData.data(), fileData.size());
+				printf("Successfully exported Fumen file to '%s'\n", result.ChartFilePath.c_str());
+			}
+			catch (const std::exception& e)
+			{
+				printf("Failed to export Fumen file: %s\n", e.what());
+			}
+
+			return result;
+		});
+	}
+
+	void ChartEditor::StartAsyncExportFumenChartDirectory(std::string_view absoluteChartFilePath, bool encrypted)
+	{
+		if (importChartFuture.valid())
+			importChartFuture.get();
+
+		importChartFuture = std::async(std::launch::async, [this, tempPathCopy = std::string(absoluteChartFilePath), encrypted]() mutable->AsyncImportChartResult
+		{
+			AsyncImportChartResult result {};
+			result.ChartFilePath = std::move(tempPathCopy);
+
+			try
+			{
+				// 确保目录存在
+				auto chartDirectoryPath = std::filesystem::path(result.ChartFilePath);
+				if (!std::filesystem::exists(chartDirectoryPath))
+				{
+					std::filesystem::create_directories(chartDirectoryPath);
+				}
+
+				// 获取基础文件名（从图表文件路径中提取，或使用默认名称）
+				std::string baseName = "chart";
+				if (!context.ChartFilePath.empty())
+				{
+					baseName = Path::GetFileName(context.ChartFilePath, false);
+				}
+
+				// 遍历所有难度
+				for (size_t i = 0; i < context.Chart.Courses.size(); ++i)
+				{
+					const ChartCourse& course = *context.Chart.Courses[i];
+					
+					// 确定难度后缀
+					const char* difficultySuffix = "_m";
+					switch (course.Type)
+					{
+					case DifficultyType::Easy:
+						difficultySuffix = "_e";
+						break;
+					case DifficultyType::Normal:
+						difficultySuffix = "_n";
+						break;
+					case DifficultyType::Hard:
+						difficultySuffix = "_h";
+						break;
+					case DifficultyType::Oni:
+						difficultySuffix = "_m";
+						break;
+					case DifficultyType::OniUra:
+						difficultySuffix = "_x";
+						break;
+					default:
+						difficultySuffix = "_m";
+						break;
+					}
+
+					// 构造输出文件路径
+					std::string fileName = baseName + difficultySuffix + ".bin";
+					auto outputPath = chartDirectoryPath / fileName;
+
+					// 将当前难度转换为 Fumen 格式
+					Fumen::FormatV2::FumenChart fumenChart = {};
+					if (!ConvertChartProjectToFumen(context.Chart, fumenChart, i))
+					{
+						printf("Failed to convert chart course %zu to Fumen format\n", i);
+						continue;
+					}
+
+					// 将 Fumen 图表写入内存
+					Fumen::FormatV2::FumenChartWriter writer = {};
+					std::vector<u8> fileData = writer.WriteToMemory(fumenChart);
+
+					// 如果需要加密
+					if (encrypted)
+					{
+						fileData = EncryptedFumenV2::Encrypt(fileData.data(), fileData.size());
+					}
+
+					// 写入文件
+					File::WriteAllBytes(outputPath.string(), fileData.data(), fileData.size());
+					printf("Successfully exported Fumen file to '%s'\n", outputPath.string().c_str());
+				}
+			}
+			catch (const std::exception& e)
+			{
+				printf("Failed to export Fumen chart directory: %s\n", e.what());
+			}
+
+			return result;
+		});
+	}
+
 	void ChartEditor::StartAsyncLoadingSongJacketFile(std::string_view absoluteJacketFilePath)
 	{
 		if (loadJacketFuture.valid())
@@ -1570,6 +1869,62 @@ namespace PeepoDrumKit
 
 				return result;
 			});
+	}
+
+	b8 ChartEditor::OpenLoadFumenFileDialog(bool encrypted)
+	{
+		fileDialog.InTitle = encrypted ? "Import Fumen Chart (Encrypted)" : "Import Fumen Chart (Raw)";
+		fileDialog.InFilters = { { "Fumen Chart Files", "bin" }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
+		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
+		fileDialog.onCallback = [this, encrypted](Shell::FileDialogResult result)
+		{
+			if (result == Shell::FileDialogResult::OK)
+				CheckOpenSaveConfirmationPopupThenCall([this, encrypted] { StartAsyncImportingFumenFile(fileDialog.OutFilePath, encrypted); });
+		};
+
+		return fileDialog.OpenRead();
+	}
+
+	b8 ChartEditor::OpenLoadFumenChartDirectoryDialog(bool encrypted)
+	{
+		fileDialog.InTitle = encrypted ? "Import Fumen Charts Directory (Encrypted)" : "Import Fumen Charts Directory (Raw)";
+		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
+		fileDialog.onCallback = [this, encrypted](Shell::FileDialogResult result)
+		{
+			if (result == Shell::FileDialogResult::OK)
+				CheckOpenSaveConfirmationPopupThenCall([this, encrypted] { StartAsyncImportingFumenChartDirectory(fileDialog.OutFilePath, encrypted); });
+		};
+
+		return fileDialog.OpenSelectFolder();
+	}
+
+	b8 ChartEditor::OpenSaveFumenFileDialog(bool encrypted)
+	{
+		fileDialog.InTitle = encrypted ? "Export Fumen Chart (Encrypted)" : "Export Fumen Chart (Raw)";
+		fileDialog.InFileName = Path::GetFileName(context.ChartFilePath, false);
+		fileDialog.InDefaultExtension = ".bin";
+		fileDialog.InFilters = { { "Fumen Chart Files", "bin" }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
+		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
+		fileDialog.onCallback = [this, encrypted](Shell::FileDialogResult result)
+		{
+			if (result == Shell::FileDialogResult::OK)
+				StartAsyncExportFumenFile(fileDialog.OutFilePath, encrypted);
+		};
+
+		return fileDialog.OpenSave();
+	}
+
+	b8 ChartEditor::OpenSaveFumenChartDirectoryDialog(bool encrypted)
+	{
+		fileDialog.InTitle = encrypted ? "Export Fumen Charts Directory (Encrypted)" : "Export Fumen Charts Directory (Raw)";
+		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
+		fileDialog.onCallback = [this, encrypted](Shell::FileDialogResult result)
+		{
+			if (result == Shell::FileDialogResult::OK)
+				StartAsyncExportFumenChartDirectory(fileDialog.OutFilePath, encrypted);
+		};
+
+		return fileDialog.OpenSelectFolder();
 	}
 
 	void ChartEditor::StartAsyncLoadingSongAudioFile(std::string_view absoluteAudioFilePath)

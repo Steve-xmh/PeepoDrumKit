@@ -395,8 +395,6 @@ namespace Shell
 		auto props = SDL_CreateProperties();
 		if (!dialog.InTitle.empty())
 			SDL_SetStringProperty(props, SDL_PROP_FILE_DIALOG_TITLE_STRING, dialog.InTitle.data());
-		if (!dialog.InFileName.empty())
-			SDL_SetStringProperty(props, SDL_PROP_FILE_DIALOG_ACCEPT_STRING, dialog.InFileName.data());
 		if (dialog.InParentWindowHandle != nullptr)
 			SDL_SetPointerProperty(props, SDL_PROP_FILE_DIALOG_WINDOW_POINTER, dialog.InParentWindowHandle);
 
