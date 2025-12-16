@@ -761,7 +761,7 @@ struct Time
 	static Time FromString(cstr inBuffer);
 };
 
-constexpr Time abs(Time time) { return Time::FromSec(abs(time.Seconds)); }
+constexpr Time abs(Time time) { return Time::FromSec(std::abs(time.Seconds)); }
 template <typename T>
 constexpr auto operator*(T&& v, Time time) { return time * v; }
 
