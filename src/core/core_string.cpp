@@ -210,48 +210,33 @@ namespace ShiftJIS
 namespace ASCII
 {
 	template <typename T>
-	constexpr b8 TryParsePrimitive(std::string_view string, T& out)
+	b8 TryParsePrimitive(std::string_view string, T& out)
 	{
-		const std::from_chars_result result = std::from_chars(string.data(), string.data() + string.size(), out, 10);
-		const b8 hasNoError = (result.ec == std::errc {});
-		const b8 parsedFully = (result.ptr == string.data() + string.size());
+		if constexpr (std::is_integral_v<T>) {
+			const std::from_chars_result result = std::from_chars(string.data(), string.data() + string.size(), out);
+			const b8 hasNoError = (result.ec == std::errc{});
+			const b8 parsedFully = (result.ptr == string.data() + string.size());
 
-		return hasNoError && parsedFully;
-	}
-	
-	template <typename T>
-	b8 TryParseFloatingPrimitive(std::string_view string, T& out)
-	{
-		// 跳过前后空白（如果不想允许空白，也可以去掉这段）
-		auto first = string.data();
-		auto last  = string.data() + string.size();
+			return hasNoError && parsedFully;
+		}
+		else { // clang does not support from_chars with floating point types; fall back to C library functions
+			std::string tmp(string.data(), string.data() + string.size());
+			char* endPtr = nullptr;
+			errno = 0;
+			T value;
+			if constexpr (std::is_same_v<T, float>)
+				value = std::strtof(tmp.c_str(), &endPtr);
+			else if constexpr (std::is_same_v<T, double>)
+				value = std::strtod(tmp.c_str(), &endPtr);
+			else if constexpr (std::is_same_v<T, long double>)
+				value = std::strtold(tmp.c_str(), &endPtr);
+			else
+				static_assert(dependent_false<T>, "Unsupported non-integral type");
 
-		// 建一个以 '\0' 结尾的临时字符串，方便用 C 接口
-		std::string tmp(first, last);
-		char* endPtr = nullptr;
-
-		errno = 0;
-		if constexpr (std::is_same_v<T, float>)
-		{
-			float value = std::strtof(tmp.c_str(), &endPtr);
 			if (endPtr != tmp.c_str() + tmp.size() || errno == ERANGE)
 				return false;
 			out = value;
 			return true;
-		}
-		else if constexpr (std::is_same_v<T, double>)
-		{
-			double value = std::strtod(tmp.c_str(), &endPtr);
-			if (endPtr != tmp.c_str() + tmp.size() || errno == ERANGE)
-				return false;
-			out = value;
-			return true;
-		}
-		else
-		{
-			static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
-						  "TryParseFloatingPrimitive only supports float/double");
-			return false;
 		}
 	}
 
@@ -259,8 +244,8 @@ namespace ASCII
 	b8 TryParse(std::string_view string, i32& out) { return TryParsePrimitive(string, out); }
 	b8 TryParse(std::string_view string, u64& out) { return TryParsePrimitive(string, out); }
 	b8 TryParse(std::string_view string, i64& out) { return TryParsePrimitive(string, out); }
-	b8 TryParse(std::string_view string, f32& out) { return TryParseFloatingPrimitive(string, out); }
-	b8 TryParse(std::string_view string, f64& out) { return TryParseFloatingPrimitive(string, out); }
+	b8 TryParse(std::string_view string, f32& out) { return TryParsePrimitive(string, out); }
+	b8 TryParse(std::string_view string, f64& out) { return TryParsePrimitive(string, out); }
 	b8 TryParse(std::string_view string, Complex& out) {
 		std::istringstream in(std::string{string});
 		in >> out;
