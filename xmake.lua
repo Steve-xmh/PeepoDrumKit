@@ -127,51 +127,19 @@ target("PeepoDrumKit")
         add_rules("xcode.application")
         add_files("src/Info.plist")
     end
-    
-    is_macosx = is_os("macosx")
-    
+
     if is_os("macosx") then
-        after_build(function (target)
-            print("Copying resource files into app bundle...")
-            destDir = path.join(target:targetdir(), "PeepoDrumKit.app", "Contents", "Resources")
-            
-            os.mkdir(destDir)
-
-            print("Copying resources to: " .. destDir)
-            os.cp("$(projectdir)/src_res/PeepoDrumKit.icns", destDir)
-
-            os.cp("$(projectdir)/locales", destDir)
-            os.cp("$(projectdir)/assets", destDir)
-
-            if os.exists("$(projectdir)/assets_override") then
-                os.cp("$(projectdir)/assets_override/*", destDir .. "/assets")
-            end
-        end)
+        destDir = path.join("Contents", "Resources")
+        add_installfiles("src_res/PeepoDrumKit.icns", {prefixdir = destDir})
     else
-        after_build(function (target)
-            destDir = target:targetdir()
-
-            os.cp("$(projectdir)/locales", destDir)
-            os.cp("$(projectdir)/assets", destDir)
-
-            if os.exists("$(projectdir)/assets_override") then
-                os.cp("$(projectdir)/assets_override/*", destDir .. "/assets")
-            end
-        end)
-        after_package(function (package)
-            print(package:targetdir())
-            print(package:packagedir())
-            destDir = package:packagedir() .. "/" .. package:plat() .. "/" .. package:arch() .. "/release/bin"
-            print("Copying resource files into package directory: " .. destDir)
-
-            os.cp("$(projectdir)/locales", destDir)
-            os.cp("$(projectdir)/assets", destDir)
-
-            if os.exists("$(projectdir)/assets_override") then
-                os.cp("$(projectdir)/assets_override/*", destDir .. "/assets")
-            end
-        end)
+        destDir = "bin"
     end
+    assetDir = path.join(destDir, "assets")
+
+    add_installfiles("(locales/*.*)", {prefixdir = destDir})
+    add_installfiles("assets*/(*.*)", {prefixdir = assetDir})
+    add_installfiles("assets*/(audio/*.*)", {prefixdir = assetDir})
+    add_installfiles("assets*/(graphics/*.*)", {prefixdir = assetDir})
 
 target("PeepoDrumKit_test_fumen")
     set_kind("binary")

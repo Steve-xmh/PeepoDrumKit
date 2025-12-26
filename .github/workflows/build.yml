@@ -59,9 +59,26 @@ jobs:
         run: |
           xmake -v
 
+      - name: Bundle assets and libraries
+        if: ${{ matrix.os != 'macosx' }}
+        run: |
+          xmake install -o build/${{ matrix.os }}/${{ matrix.arch }}/release/
+
+      - name: Clear up extra build files for MacOSX
+        if: ${{ matrix.os == 'macosx' }}
+        run: |
+          rm build/${{ matrix.os }}/${{ matrix.arch }}/release/PeepoDrumKit
+
+      - name: Observer build directories
+        run: |
+          pwd
+          ls -l build/${{ matrix.os }}/${{ matrix.arch }}/release/${{ matrix.os != 'macosx' && 'bin/' || '' }}
+
       - name: Upload artifact (binary + assets)
         uses: actions/upload-artifact@v4
         with:
           name: peepodrumkit-${{ matrix.os }}-${{ matrix.arch }}
-          path: build/${{ matrix.os }}/${{ matrix.arch }}/release/
+          path: |
+            build/${{ matrix.os }}/${{ matrix.arch }}/release/${{ matrix.os != 'macosx' && 'bin/' || '' }}
+            ${{ matrix.os == 'macosx' && format('build/{0}/{1}/release/PeepoDrumKit.app', matrix.os, matrix.arch) || '' }}
           if-no-files-found: error
