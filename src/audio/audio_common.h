@@ -169,7 +169,7 @@ namespace Audio
 		const SampleType endValue = SampleAtFrameIndexOrZero<SampleType>(endFrame, atChannel, samples, sampleCount, channelCount);
 		const f64 inbetween = (frameFaction - static_cast<f64>(startFrame));
 
-		static constexpr f64 maxSampleValueF64 = static_cast<f64>(std::numeric_limits<SampleType>::max());
+		constexpr f64 maxSampleValueF64 = static_cast<f64>(std::numeric_limits<SampleType>::max());
 		const f64 normalizedStart = static_cast<f64>(startValue / maxSampleValueF64);
 		const f64 normalizedEnd = static_cast<f64>(endValue / maxSampleValueF64);
 

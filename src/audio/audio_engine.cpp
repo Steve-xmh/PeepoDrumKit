@@ -82,7 +82,7 @@ namespace Audio
 	{
 	public:
 		b8 IsStreamOpenRunning = false;
-		std::array<std::atomic<f32>, MaxSoundGroups> SoundGroupVolume = InitializedArray<std::atomic<f32>, MaxSoundGroups>(AudioEngine::MaxVolume);
+		std::array<std::atomic<f32>, MaxSoundGroups> SoundGroupVolume; // Initialized in constructor
 
 	public:
 		ChannelMixer ChannelMixer = {};
@@ -122,6 +122,13 @@ namespace Audio
 		std::atomic<i64> TotalRenderedFrames = {};
 
 	public:
+		Impl()
+		{
+			for (auto& v : SoundGroupVolume) {
+				v = AudioEngine::MaxVolume;
+			}
+		}
+
 		VoiceData* TryGetVoiceData(VoiceHandle handle)
 		{
 			const HandleBaseType handleIndex = VoiceHandleToIndex(handle);

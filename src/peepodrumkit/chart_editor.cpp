@@ -14,7 +14,7 @@ namespace PeepoDrumKit
 	static constexpr f32 PresetGuiScaleFactors[] = { 0.5, (2.0f / 3.0f), 0.75f, 0.8f, 0.9f, 1.0f, 1.1f, 1.25f, 1.5f, 1.75f, 2.0f, 2.5f, 3.0f, };
 	static constexpr f32 PresetGuiScaleFactorMin = PresetGuiScaleFactors[0];
 	static constexpr f32 PresetGuiScaleFactorMax = PresetGuiScaleFactors[ArrayCount(PresetGuiScaleFactors) - 1];
-	static constexpr f32 NextPresetGuiScaleFactor(f32 current, i32 direction)
+	static f32 NextPresetGuiScaleFactor(f32 current, i32 direction)
 	{
 		i32 closest = 0;
 		for (const f32& it : PresetGuiScaleFactors) if (it <= current || ApproxmiatelySame(it, current)) closest = ArrayItToIndexI32(&it, &PresetGuiScaleFactors[0]);

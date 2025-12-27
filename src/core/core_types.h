@@ -119,6 +119,12 @@ template <class F> __forceinline deferrer<F> operator*(defer_dummy, F f) { retur
 template <auto ConstexprExpression>
 constexpr auto ForceConsteval = ConstexprExpression;
 
+// NOTE: Example: dependent_false<Type>, dependent_v_false<Value>; to prevent unreachable static_assert(false) from emitting errors, fixed in C++23 for C++11+ modes
+template <typename T>
+constexpr b8 dependent_false = false;
+template <auto V>
+constexpr b8 dependent_v_false = false;
+
 // Note: Example: ConstevalStrJoined<Str1, Str2>, where each of Str1 and Str2 is a constexpr variable holding a string
 // cannot pass string literals as template argument without much more efforts until C++20
 template <const auto&... Strs>
@@ -755,7 +761,7 @@ struct Time
 	static Time FromString(cstr inBuffer);
 };
 
-constexpr Time abs(Time time) { return Time::FromSec(abs(time.Seconds)); }
+constexpr Time abs(Time time) { return Time::FromSec(std::abs(time.Seconds)); }
 template <typename T>
 constexpr auto operator*(T&& v, Time time) { return time * v; }
 

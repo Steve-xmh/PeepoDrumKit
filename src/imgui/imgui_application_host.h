@@ -34,7 +34,7 @@ inline i32 GuiScaleI32_AtTarget(i32 value) { return static_cast<i32>(Floor(stati
 
 constexpr f32 GuiScaleFactorMin = FromPercent(50.0f);
 constexpr f32 GuiScaleFactorMax = FromPercent(300.0f);
-constexpr f32 ClampRoundGuiScaleFactor(f32 scaleFactor) { return Clamp(FromPercent(Round(ToPercent(scaleFactor))), GuiScaleFactorMin, GuiScaleFactorMax); }
+inline f32 ClampRoundGuiScaleFactor(f32 scaleFactor) { return Clamp(FromPercent(Round(ToPercent(scaleFactor))), GuiScaleFactorMin, GuiScaleFactorMax); }
 
 inline b8 EnableGuiScaleAnimation = true;
 inline b8 IsGuiScaleCurrentlyAnimating = false;

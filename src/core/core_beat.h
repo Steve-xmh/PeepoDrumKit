@@ -22,7 +22,7 @@ struct Beat
 	static constexpr Beat FromTicks(i32 ticks) { return Beat(ticks); }
 	static constexpr Beat FromBeats(i32 beats) { return Beat(TicksPerBeat * beats); }
 	static constexpr Beat FromBars(i32 bars, i32 beatsPerBar = 4) { return FromBeats(bars * beatsPerBar); }
-	static constexpr Beat FromBeatsFraction(f64 fraction) { return FromTicks(static_cast<i32>(Round(fraction * static_cast<f64>(TicksPerBeat)))); }
+	static Beat FromBeatsFraction(f64 fraction) { return FromTicks(static_cast<i32>(Round(fraction * static_cast<f64>(TicksPerBeat)))); }
 
 	constexpr b8 operator==(const Beat& other) const { return Ticks == other.Ticks; }
 	constexpr b8 operator!=(const Beat& other) const { return Ticks != other.Ticks; }

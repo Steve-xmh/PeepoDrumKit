@@ -218,18 +218,9 @@ namespace PeepoDrumKit
 	};
 
 	constexpr std::string_view PluralSuffixDefault = "s"; // unfortunately cannot just pass the string literal for now
-	
-    template <typename>
-    struct dependent_false : std::false_type { };
-	
-    template <typename TEvent>
-    constexpr std::string_view DisplayNameOfChartEvent_Fallback() {
-        static_assert(dependent_false<TEvent>::value, "DisplayNameOfChartEvent must be specialized for this type");
-        return {};
-    }
 
 	template <typename TEvent>
-	inline constexpr std::string_view DisplayNameOfChartEvent = DisplayNameOfChartEvent_Fallback<TEvent>(); // Forbid usage unless specialized
+	inline constexpr std::string_view DisplayNameOfChartEvent = std::declval<TEvent>(); // Forbid usage unless specialized
 	template <typename TEvent>
 	inline constexpr std::string_view DisplayNameOfLongChartEvent = DisplayNameOfChartEvent<TEvent>;
 	template <typename TEvent>
@@ -600,7 +591,7 @@ namespace PeepoDrumKit
 		else if constexpr (Member == GenericMember::I8_ScrollType) return (std::forward<GenericMemberUnionT>(values).I16);
 		else if constexpr (Member == GenericMember::F32_JPOSScroll) return (std::forward<GenericMemberUnionT>(values).CPX);
 		else if constexpr (Member == GenericMember::F32_JPOSScrollDuration) return (std::forward<GenericMemberUnionT>(values).F32);
-		else static_assert(false, "unhandled or invalid GenericMember value");
+		else static_assert(dependent_v_false<Member>, "unhandled or invalid GenericMember value");
 	}
 
 	template <GenericMember Member>
@@ -969,7 +960,7 @@ namespace PeepoDrumKit
 		else if constexpr (List == GenericList::Lyrics) return (std::forward<ChartCourseT>(course).Lyrics);
 		else if constexpr (List == GenericList::ScrollType) return (std::forward<ChartCourseT>(course).ScrollTypes);
 		else if constexpr (List == GenericList::JPOSScroll) return (std::forward<ChartCourseT>(course).JPOSScrollChanges);
-		else static_assert(false, "unhandled or invalid GenericList value");
+		else static_assert(dependent_v_false<List>, "unhandled or invalid GenericList value");
 	}
 
 	template <GenericList List>
@@ -989,7 +980,7 @@ namespace PeepoDrumKit
 		else if constexpr (List == GenericList::Lyrics) return (std::forward<GenericListStructT>(inValue).NonTrivial.Lyric);
 		else if constexpr (List == GenericList::ScrollType) return (std::forward<GenericListStructT>(inValue).POD.ScrollType);
 		else if constexpr (List == GenericList::JPOSScroll) return (std::forward<GenericListStructT>(inValue).POD.JPOSScroll);
-		else static_assert(false, "unhandled or invalid GenericList value");
+		else static_assert(dependent_v_false<List>, "unhandled or invalid GenericList value");
 	}
 
 	// Access functions for concrete GenericListStruct types

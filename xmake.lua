@@ -28,12 +28,14 @@ add_requires(
     {
         debug = is_mode("debug"),
     })
-add_requires(
-    "libsoundio",
-    {
-        debug = is_mode("debug"),
-        configs = libsoundio_config
-    })
+if not is_os("linux") then
+    add_requires(
+        "libsoundio",
+        {
+            debug = is_mode("debug"),
+            configs = libsoundio_config
+        })
+end
 add_requires(
     "thorvg v1.0-pre10",
     {
@@ -45,9 +47,7 @@ add_requires(
     })
 add_requires(
     "stb 2025.03.14",
-    "thorvg v1.0-pre10",
     "gzip-hpp",
-    "libsoundio",
     "libsdl3",
     "icu4c"
     )
@@ -69,15 +69,24 @@ target("PeepoDrumKit")
     set_kind("binary")
     set_symbols("debug") -- Keep debug symbols in all build modes
     set_languages("cxxlatest")
+
+    -- project sources
     add_files("src/main.cpp")
     add_files("src/core/*.cpp")
     add_files("src/peepodrumkit/*.cpp")
-    add_files("src/audio/*.cpp")
-    add_files("src/audio/*.c")
+    add_files("src/audio/*.c", "src/audio/*.cpp")
     add_files("src/imgui/*.cpp")
     add_files("src/imgui/ImGuiColorTextEdit/*.cpp")
     add_files("src/imgui/extension/*.cpp")
-    
+
+    -- project headers
+    add_headerfiles("src/core/*.h")
+    add_headerfiles("src/peepodrumkit/*.h")
+    add_headerfiles("src/audio/*.h")
+    add_headerfiles("src/imgui/*.h")
+    add_headerfiles("src/imgui/ImGuiColorTextEdit/*.h")
+    add_headerfiles("src/imgui/extension/*.h")
+
     add_defines("IMGUI_USER_CONFIG=\"imgui/peepodrumkit_imconfig.h\"")
 
     if not is_mode("debug") then
@@ -94,62 +103,43 @@ target("PeepoDrumKit")
     add_includedirs("src/core")
     add_includedirs("src/peepodrumkit")
     add_includedirs("libs")
-    add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3", "icu4c", "plusaes", "gzip-hpp")
+    
+    if is_os("linux") then
+        -- Manually specify libsoundio paths for Linux distros without pkg-config
+        add_includedirs("/usr/include", "/usr/local/include")
+        add_linkdirs("/usr/lib", "/usr/local/lib", "/usr/lib/x86_64-linux-gnu")
+        add_links("soundio")
+        add_packages("imgui", "dr_libs", "stb", "thorvg", "libsdl3", "icu4c", "plusaes", "gzip-hpp")
+        -- Suppress specific warnings on Linux
+        add_cxxflags("-fpermissive", "-Wno-changes-meaning")
+    else
+        add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3", "icu4c", "plusaes", "gzip-hpp")
+    end
+    
     if is_os("windows") then
         -- add_files("src/imgui/*.hlsl")
         add_files("src_res/Resource.rc")
         add_syslinks("Shlwapi", "Shell32", "Ole32", "dxgi", "d3d11", "ntdll")
         -- add_packages("directxshadercompiler")
         -- add_rules("utils.hlsl2spv", {bin2c = true})
+        add_cxxflags("/utf-8") -- force UTF-8 string without u8"" (not default in MSVC++)
     elseif is_os("macosx") then
         add_rules("xcode.application")
         add_files("src/Info.plist")
     end
-    
-    is_macosx = is_os("macosx")
-    
+
     if is_os("macosx") then
-        after_build(function (target)
-            print("Copying resource files into app bundle...")
-            destDir = path.join(target:targetdir(), "PeepoDrumKit.app", "Contents", "Resources")
-            
-            os.mkdir(destDir)
-
-            print("Copying resources to: " .. destDir)
-            os.cp("$(projectdir)/src_res/PeepoDrumKit.icns", destDir)
-
-            os.cp("$(projectdir)/locales", destDir)
-            os.cp("$(projectdir)/assets", destDir)
-
-            if os.exists("$(projectdir)/assets_override") then
-                os.cp("$(projectdir)/assets_override/*", destDir .. "/assets")
-            end
-        end)
+        destDir = path.join("Contents", "Resources")
+        add_installfiles("src_res/PeepoDrumKit.icns", {prefixdir = destDir})
     else
-        after_build(function (target)
-            destDir = target:targetdir()
-
-            os.cp("$(projectdir)/locales", destDir)
-            os.cp("$(projectdir)/assets", destDir)
-
-            if os.exists("$(projectdir)/assets_override") then
-                os.cp("$(projectdir)/assets_override/*", destDir .. "/assets")
-            end
-        end)
-        after_package(function (package)
-            print(package:targetdir())
-            print(package:packagedir())
-            destDir = package:packagedir() .. "/" .. package:plat() .. "/" .. package:arch() .. "/release/bin"
-            print("Copying resource files into package directory: " .. destDir)
-
-            os.cp("$(projectdir)/locales", destDir)
-            os.cp("$(projectdir)/assets", destDir)
-
-            if os.exists("$(projectdir)/assets_override") then
-                os.cp("$(projectdir)/assets_override/*", destDir .. "/assets")
-            end
-        end)
+        destDir = "bin"
     end
+    assetDir = path.join(destDir, "assets")
+
+    add_installfiles("(locales/*.*)", {prefixdir = destDir})
+    add_installfiles("assets*/(*.*)", {prefixdir = assetDir})
+    add_installfiles("assets*/(audio/*.*)", {prefixdir = assetDir})
+    add_installfiles("assets*/(graphics/*.*)", {prefixdir = assetDir})
 
 target("PeepoDrumKit_test_fumen")
     set_kind("binary")
