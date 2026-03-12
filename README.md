@@ -14,6 +14,9 @@ Fork of PeepoDrumKit with large refractor for Official Taiko Charting & Modding.
 ## Build
 
 ```bash
+
+git submodule update --init --recursive # skip after first time
+
 xmake
 xmake build
 ```
