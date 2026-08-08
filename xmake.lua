@@ -75,6 +75,9 @@ target("PeepoDrumKit")
     add_files("src/core/*.cpp")
     add_files("src/peepodrumkit/*.cpp")
     add_files("src/audio/*.c", "src/audio/*.cpp")
+    if not is_os("macosx") then
+        remove_files("src/audio/audio_backend_coreaudio.cpp")
+    end
     add_files("src/imgui/*.cpp")
 
     if is_os("macosx") then

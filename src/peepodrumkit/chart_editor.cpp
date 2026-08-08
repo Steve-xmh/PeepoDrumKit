@@ -2024,6 +2024,10 @@ namespace PeepoDrumKit
 				AsyncLoadJacketResult result{};
 				result.JacketFilePath = std::move(tempPathCopy);
 
+				// TODO: Maybe handle this in a different way... but for now loading an empty file path works as an "unload"
+				if (result.JacketFilePath.empty())
+					return result;
+
 				auto [fileContent, fileSize] = File::ReadAllBytes(result.JacketFilePath);
 				if (fileContent == nullptr || fileSize == 0)
 				{
@@ -2240,6 +2244,49 @@ namespace PeepoDrumKit
 			const Time previousChartSongOffset = context.Chart.SongOffset;
 
 			AsyncImportChartResult loadResult = importChartFuture.get();
+
+			auto getTotalNoteCount = [](const ChartProject& chart) -> size_t
+			{
+				size_t outCount = 0;
+				for (const auto& course : chart.Courses)
+				{
+					if (!course)
+						continue;
+					outCount += course->Notes_Normal.Sorted.size();
+					outCount += course->Notes_Expert.Sorted.size();
+					outCount += course->Notes_Master.Sorted.size();
+				}
+				return outCount;
+			};
+
+			if (Path::HasExtension(loadResult.ChartFilePath, TJA::Extension))
+			{
+				const size_t importedNoteCount = getTotalNoteCount(loadResult.Chart);
+				if (importedNoteCount == 0)
+				{
+					std::string message = "TJA imported successfully, but 0 notes were parsed.\n";
+					message += "This usually means the file contains unsupported syntax or command formatting.\n\n";
+					if (!loadResult.TJA.ParseErrors.Errors.empty())
+					{
+						message += "First parse errors:\n";
+						const size_t shownErrorCount = Min(loadResult.TJA.ParseErrors.Errors.size(), size_t(8));
+						for (size_t i = 0; i < shownErrorCount; i++)
+						{
+							const auto& err = loadResult.TJA.ParseErrors.Errors[i];
+							message += "- L" + std::to_string(err.LineIndex + 1) + ": " + err.Description + "\n";
+						}
+						if (loadResult.TJA.ParseErrors.Errors.size() > shownErrorCount)
+							message += "- ...";
+					}
+					else
+					{
+						message += "No parser errors were reported.";
+					}
+
+					Shell::ShowMessageBox(message, "TJA Import Warning", Shell::MessageBoxButtons::OK, Shell::MessageBoxIcon::Warning,
+						ApplicationHost::GlobalState.NativeWindowHandle);
+				}
+			}
 
 			// TODO: Maybe also do date version check (?)
 			createBackupOfOriginalTJABeforeOverwriteSave = !loadResult.TJA.Parsed.HasPeepoDrumKitComment;

@@ -52,7 +52,7 @@ namespace PeepoDrumKit
 		inline f32 GetSoundGroupVolume(SoundGroup soundGroup) { return Audio::Engine.GetSoundGroupVolume(EnumToIndex(soundGroup)); }
 
 		i32 VoicePoolRingIndex = 0;
-		static constexpr size_t VoicePoolSize = 32;
+		static constexpr size_t VoicePoolSize = 8;
 		Audio::Voice VoicePool[VoicePoolSize] = {};
 
 		Audio::SourceHandle LoadedSources[EnumCount<SoundEffectType>] = {};

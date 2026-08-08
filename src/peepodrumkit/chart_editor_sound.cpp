@@ -90,9 +90,7 @@ namespace PeepoDrumKit
 			voice.SetPan(pan);
 			voice.SetIsPlaying(true);
 
-			VoicePoolRingIndex++;
-			if (VoicePoolRingIndex >= VoicePoolSize)
-				VoicePoolRingIndex = 0;
+			VoicePoolRingIndex = (static_cast<i32>(VoicePoolRingIndex) + 1) % VoicePoolSize;
 		}
 	}
 

@@ -4,11 +4,26 @@
 #include <stdio.h>
 #include <atomic>
 
+#if defined(PEEPO_HAS_LIBSOUNDIO)
+#define PEEPO_AUDIO_LIBSOUNDIO_AVAILABLE PEEPO_HAS_LIBSOUNDIO
+#elif defined(__has_include)
+#if __has_include(<soundio/soundio.h>)
+#define PEEPO_AUDIO_LIBSOUNDIO_AVAILABLE 1
+#else
+#define PEEPO_AUDIO_LIBSOUNDIO_AVAILABLE 0
+#endif
+#else
+#define PEEPO_AUDIO_LIBSOUNDIO_AVAILABLE 0
+#endif
+
+#if PEEPO_AUDIO_LIBSOUNDIO_AVAILABLE
 #include <soundio/soundio.h>
+#endif
 
 // TODO: Implement LibSoundIO backend
 namespace Audio
 {
+#if PEEPO_AUDIO_LIBSOUNDIO_AVAILABLE
 	struct LibSoundIOBackend::Impl
 	{
 	private:
@@ -281,4 +296,26 @@ namespace Audio
 		static constexpr cstr names[] = { "LibSoundIO (Shared)", "LibSoundIO (Exclusive)" };
 		return (index < 2) ? names[index] : "Invalid";
 	}
+#else
+	struct LibSoundIOBackend::Impl
+	{
+	};
+
+	LibSoundIOBackend::LibSoundIOBackend() : impl(std::make_unique<Impl>()) {}
+	LibSoundIOBackend::~LibSoundIOBackend() = default;
+	b8 LibSoundIOBackend::OpenStartStream(const BackendStreamParam &param, BackendRenderCallback callback)
+	{
+		(void)param;
+		(void)callback;
+		return false;
+	}
+	b8 LibSoundIOBackend::StopCloseStream() { return false; }
+	b8 LibSoundIOBackend::IsOpenRunning() const { return false; }
+	u32 LibSoundIOBackend::GetVariantCount() const { return 0; }
+	cstr LibSoundIOBackend::GetVariantName(u32 index) const
+	{
+		(void)index;
+		return "LibSoundIO (Unavailable)";
+	}
+#endif
 }

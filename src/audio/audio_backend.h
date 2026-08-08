@@ -93,4 +93,25 @@ namespace Audio
 		struct Impl;
 		std::unique_ptr<Impl> impl;
 	};
+
+#ifdef __linux__
+	class PipeWireBackend : public IAudioBackend
+	{
+	public:
+		PipeWireBackend();
+		~PipeWireBackend();
+
+	public:
+		b8 OpenStartStream(const BackendStreamParam &param, BackendRenderCallback callback) override;
+		b8 StopCloseStream() override;
+		b8 IsOpenRunning() const override;
+
+		u32 GetVariantCount() const override;
+		cstr GetVariantName(u32 index) const override;
+
+	private:
+		struct Impl;
+		std::unique_ptr<Impl> impl;
+	};
+#endif // __linux__
 }

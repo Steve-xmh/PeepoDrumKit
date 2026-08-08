@@ -14,11 +14,13 @@ namespace Audio
 
 	static std::unique_ptr<IAudioBackend> CreateBackendInterface(Backend backend)
 	{
-		
+		(void)backend;
 #ifdef _WIN32
 		return std::make_unique<WASAPIBackend>();
 #elif defined(__APPLE__)
 		return std::make_unique<CoreAudioBackend>();
+#elif defined(__linux__)
+		return std::make_unique<LibSoundIOBackend>();
 #endif
 		// Use LibSoundIO as fallback/default
 		return std::make_unique<LibSoundIOBackend>();
@@ -529,7 +531,7 @@ namespace Audio
 
 		impl->OnOpenStream();
 
-		const b8 openStreamSuccess = impl->CurrentBackend->OpenStartStream(streamParam, [this](i16* outputBuffer, const u32 bufferFrameCount, const u32 bufferChannelCount)
+		b8 openStreamSuccess = impl->CurrentBackend->OpenStartStream(streamParam, [this](i16* outputBuffer, const u32 bufferFrameCount, const u32 bufferChannelCount)
 		{
 			impl->RenderAudioCallback(outputBuffer, bufferFrameCount, bufferChannelCount);
 		});

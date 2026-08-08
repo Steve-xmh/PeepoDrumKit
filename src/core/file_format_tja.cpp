@@ -201,14 +201,14 @@ namespace TJA
 					if (lineTrimmed[0] == '#')
 					{
 						newToken.Type = TokenType::HashChartCommand;
-						if (const size_t spaceSeparator = lineTrimmed.find_first_of(' '); spaceSeparator != std::string_view::npos)
+						if (const size_t spaceSeparator = lineTrimmed.find_first_of(" \t\r\n"); spaceSeparator != std::string_view::npos)
 						{
-							newToken.KeyString = lineTrimmed.substr(sizeof('#'), spaceSeparator - sizeof('#'));
-							newToken.ValueString = lineTrimmed.substr(spaceSeparator + sizeof(' '));
+							newToken.KeyString = ASCII::Trim(lineTrimmed.substr(sizeof('#'), spaceSeparator - sizeof('#')));
+							newToken.ValueString = ASCII::Trim(lineTrimmed.substr(spaceSeparator + sizeof(' ')));
 						}
 						else
 						{
-							newToken.KeyString = lineTrimmed.substr(sizeof('#'), lineTrimmed.size() - sizeof('#'));
+							newToken.KeyString = ASCII::Trim(lineTrimmed.substr(sizeof('#'), lineTrimmed.size() - sizeof('#')));
 							newToken.ValueString = {};
 						}
 
@@ -221,8 +221,8 @@ namespace TJA
 					else if (const size_t colonSeparator = lineTrimmed.find_first_of(':'); colonSeparator != std::string_view::npos)
 					{
 						newToken.Type = TokenType::KeyColonValue;
-						newToken.KeyString = lineTrimmed.substr(0, colonSeparator);
-						newToken.ValueString = lineTrimmed.substr(colonSeparator + sizeof(':'));
+						newToken.KeyString = ASCII::Trim(lineTrimmed.substr(0, colonSeparator));
+						newToken.ValueString = ASCII::Trim(lineTrimmed.substr(colonSeparator + sizeof(':')));
 
 						newToken.Key = GetKeyColonValueTokenKey(newToken.KeyString);
 						if (newToken.Key == Key::Course_COURSE) {
